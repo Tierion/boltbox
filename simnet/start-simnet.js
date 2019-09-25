@@ -1,27 +1,51 @@
 #!/usr/bin/env node
+const { promisify } = require('util')
+
+const exec = promisify(require('child_process').exec)
+
+const NETWORK = 'simnet'
+// env vars to use for all docker calls
+const env = {
+  NETWORK,
+  COMPOSE_INTERACTIVE_NO_CLI: true,
+}
+
+/**
+ * A class used to create NodeConfigs for creating and interacting simnet
+ * lightning nodes via docker-compose
+ * @pararms {String} name - name of node (e.g. 'alice', 'bob', 'carol')
+ * @pararms {Number} port - RPC port that will be exposed and used to communicate via lncli container
+ */
+class NodeConfig {
+  constructor({ name, port }) {
+    this.name = name
+    this.port = port
+    this.lnddir = `/lnd-data/${name}`
+    this.lncli = `docker-compose run -e LNDDIR=${this.lnddir} -e RPCSERVER="${name}:${port}" lncli`
+  }
+
+  startNode() {
+    return exec(`docker-compose run -d -e LNDDIR=${this.lnddir} -e RPCLISTEN=${this.port} -p ${this.port}:${this.port} --name ${this.name} lnd_btc --tlsextradomain="${this.name}"`, { env } )
+  }
+
+  exec(cmd) {
+    if (typeof cmd !== 'string')
+      throw new Error('must pass a string for the list of commands to run w/ lncli')
+
+    return exec(`${this.lncli} ${cmd}`, { env })
+  }
+}
 
 (async function() {
   const { promisify } = require('util')
 
   const exec = promisify(require('child_process').exec)
 
-  const NETWORK = 'simnet'
-
-  // Alice
-  const ALICE_DIR = "/lnd-data/alice"
-  const ALICE_PORT = 10001
-  
-  // shortcut for interacting with alice node via lncli docker container
-  const lncli_alice = `docker-compose run -e LNDDIR=${ALICE_DIR} -e RPCSERVER="alice:${ALICE_PORT}" lncli`
-
-  const env = {
-    NETWORK,
-    COMPOSE_INTERACTIVE_NO_CLI: true,
-  }
+  const alice = new NodeConfig({ name: 'alice', port: 10001 })
 
   try {
     console.log('Starting alice node...')
-    let { stdout, stderr} = await exec(`docker-compose run -d -e LNDDIR=${ALICE_DIR} -e RPCLISTEN=${ALICE_PORT} -p ${ALICE_PORT}:${ALICE_PORT} --name alice lnd_btc --tlsextradomain="alice"`, { env } )
+    let { stdout, stderr} = await alice.startNode()
   } catch (e) {
     if (e.message.match(/Cannot create container for service lnd_btc: Conflict/g))
       console.warn('Container for alice already exists. Skipping')
@@ -35,7 +59,7 @@
   while (!MINING_ADDRESS && counter < tries) {
     try {
       console.log(`Attempting to get address from alice node. (Tries: ${counter}/${tries})`)
-      let { stdout, stderr} = await exec(`${lncli_alice} newaddress np2wkh`, { env })
+      let { stdout, stderr} = await alice.exec('newaddress np2wkh')
       
       if (stdout)
         MINING_ADDRESS = JSON.parse(stdout).address
@@ -62,7 +86,7 @@
     let blockchainInfo = (await exec(`docker-compose run btcctl getblockchaininfo`)).stdout
     blockchainInfo = JSON.parse(blockchainInfo)
 
-    let balance = (await exec(`${lncli_alice} walletbalance`, { env })).stdout
+    let balance = (await alice.exec('walletbalance')).stdout
     balance = JSON.parse(balance)
 
     // check if we already have a mined blockchain and funded wallet on persisted volume
@@ -79,7 +103,7 @@
       console.log('No existing simnet chain found. Creating new one.')
       console.log('Mining 400 blocks...')
       await exec(`docker-compose run btcctl generate 400`, { env }) 
-      let balance = (await exec(`${lncli_alice} walletbalance`, { env })).stdout
+      let balance = (await alice.exec('walletbalance')).stdout
       balance = JSON.parse(balance)
       console.log(`Alice's balance: ${balance.confirmed_balance}`)
     }
