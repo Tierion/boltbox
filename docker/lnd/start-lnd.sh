@@ -61,15 +61,18 @@ PARAMS=$(echo $PARAMS \
     "--$CHAIN.active" \
     "--$CHAIN.$NETWORK" \
     "--$CHAIN.node=btcd" \
-    "--$BACKEND.rpccert=/rpc/rpc.cert" \
     "--$BACKEND.rpchost=blockchain" \
+    "--$BACKEND.rpccert=/rpc/rpc.cert" \
     "--$BACKEND.rpcuser=$RPCUSER" \
     "--$BACKEND.rpcpass=$RPCPASS" \
     "--externalip=$PUBLICIP" \
     "--restlisten=0.0.0.0:$RESTLISTEN" \
     "--rpclisten=0.0.0.0:$RPCLISTEN" \
-    "--tlsextradomain=alice"\
 )
+
+if [-n $TLSEXTRADOMAIN]; then
+  PARAMS="$PARAMS --tlsextradomain=$TLSEXTRADOMAIN"
+fi
 
 # Add user parameters to command.
 PARAMS="$PARAMS $@"

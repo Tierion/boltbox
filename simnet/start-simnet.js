@@ -22,17 +22,46 @@ class NodeConfig {
     this.port = port
     this.lnddir = `/lnd-data/${name}`
     this.lncli = `docker-compose run -e LNDDIR=${this.lnddir} -e RPCSERVER="${name}:${port}" lncli`
+    this.env = {
+      ...env, 
+      TLSEXTRADOMAIN: this.name
+     }
   }
 
-  startNode() {
-    return exec(`docker-compose run -d -e LNDDIR=${this.lnddir} -e RPCLISTEN=${this.port} -p ${this.port}:${this.port} --name ${this.name} lnd_btc --tlsextradomain="${this.name}"`, { env } )
+  async startNode() {
+    await exec(`docker-compose run -d -e LNDDIR=${this.lnddir} -e RPCLISTEN=${this.port} -p ${this.port}:${this.port} --name ${this.name} lnd_btc --tlsextradomain="${this.name}"`, { env: this.env } )
+    
+    console.log(`Testing connection to ${this.name}...`)
+    let counter = 1, connection = false
+    // only want to return when the node is reachable
+    while (!connection || counter < 10) {
+      try {
+        const info = await this.getInfo()
+        if (info && info.version) connection = true
+        counter++
+      } catch (e) {}
+      counter++
+    }
+
+    return
   }
 
   exec(cmd) {
     if (typeof cmd !== 'string')
       throw new Error('must pass a string for the list of commands to run w/ lncli')
 
-    return exec(`${this.lncli} ${cmd}`, { env })
+    return exec(`${this.lncli} ${cmd}`, { env: this.env })
+  }
+
+  async setIdentity() {
+    const info = (await this.exec('getinfo')).stdout
+    this.identityPubkey = JSON.parse(info).identity_pubkey
+  }
+
+  async getInfo() {
+    const resp = (await this.exec('getinfo'))
+    
+    return JSON.parse(resp.stdout)
   }
 }
 
@@ -45,12 +74,14 @@ class NodeConfig {
 
   try {
     console.log('Starting alice node...')
-    let { stdout, stderr} = await alice.startNode()
+    await alice.startNode()
   } catch (e) {
     if (e.message.match(/Cannot create container for service lnd_btc: Conflict/g))
       console.warn('Container for alice already exists. Skipping')
-    else  console.error('There was a problem starting alice node:', e.message)
+    else  console.error('There was a problem starting alice node:', e)
   }
+
+  await alice.setIdentity()
 
   // Get an address from alice's node to use as the mining address for our full node
   // Needs to be a loop because sometimes even if the container is started
