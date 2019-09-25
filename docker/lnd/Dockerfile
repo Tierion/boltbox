@@ -1,0 +1,33 @@
+FROM golang:1.13-alpine as builder
+
+# Force Go to use the cgo based DNS resolver. This is required to ensure DNS
+# queries required to connect to linked containers succeed.
+ENV GODEBUG netdns=cgo
+
+RUN apk add --no-cache --update alpine-sdk \
+    ca-certificates \
+    bash \
+    git \
+    make \
+    libc-dev \
+    gcc
+
+RUN git clone https://github.com/tierion/lnd /go/src/github.com/lightningnetwork/lnd
+RUN cd /go/src/github.com/lightningnetwork/lnd && git checkout rpc-additions
+RUN cd /go/src/github.com/lightningnetwork/lnd && make
+RUN cd /go/src/github.com/lightningnetwork/lnd && \
+make install tags="dev autopilotrpc chainrpc invoicesrpc routerrpc signrpc signerrpc walletrpc watchtowerrpc"
+
+# Start a new, final image to reduce size.
+FROM builder as prod
+
+RUN cp /go/bin/lnd /bin/lnd
+RUN cp /go/bin/lncli /bin/lncli
+
+# Create and set permissions for lnd data directory
+# RUN mkdir -p /root/.lnd && chmod -R 777 /root
+RUN mkdir -p /lnd-data && chmod -R 777 /lnd-data
+
+COPY start-lnd.sh .
+COPY start-lncli.sh .
+RUN chmod +x ./start-lnd.sh && chmod +x ./start-lncli.sh
