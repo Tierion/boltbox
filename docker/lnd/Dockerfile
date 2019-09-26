@@ -25,7 +25,6 @@ RUN cp /go/bin/lnd /bin/lnd
 RUN cp /go/bin/lncli /bin/lncli
 
 # Create and set permissions for lnd data directory
-# RUN mkdir -p /root/.lnd && chmod -R 777 /root
 RUN mkdir -p /lnd-data && chmod -R 777 /lnd-data
 
 COPY start-lnd.sh .

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const { promisify } = require('util')
+const assert = require('assert')
 
 const exec = promisify(require('child_process').exec)
 
@@ -17,24 +18,53 @@ const env = {
  * @pararms {Number} port - RPC port that will be exposed and used to communicate via lncli container
  */
 class NodeConfig {
-  constructor({ name, port }) {
+  constructor({ name, port, neutrino }) {
     this.name = name
     this.port = port
     this.lnddir = `/lnd-data/${name}`
     this.lncli = `docker-compose run -e LNDDIR=${this.lnddir} -e RPCSERVER="${name}:${port}" lncli`
     this.env = {
       ...env, 
-      TLSEXTRADOMAIN: this.name
+      TLSEXTRADOMAIN: this.name, // adds docker host to be added to tls cert
+     }
+
+     if (neutrino) {
+       assert(typeof neutrino === 'boolean', 'Must pass a boolean for neutrino option')
+       this.neutrino = neutrino
      }
   }
 
   async startNode() {
-    await exec(`docker-compose run -d -e LNDDIR=${this.lnddir} -e RPCLISTEN=${this.port} -p ${this.port}:${this.port} --name ${this.name} lnd_btc --tlsextradomain="${this.name}"`, { env: this.env } )
+
+    let startCmd = 
+    `docker-compose run -d \
+    -e LNDDIR='${this.lnddir}' \
+    -e RPCLISTEN=${this.port} \
+    -e NOSEEDBACKUP='true'\
+    -e TLSEXTRADOMAIN='${this.name}'`
     
-    console.log(`Testing connection to ${this.name}...`)
+    if (this.neutrino) {
+      startCmd = `${startCmd} -e NEUTRINO=btcd:18555 -e BACKEND=neutrino`
+    }
+    
+    startCmd = `${startCmd} -p ${this.port}:${this.port} --name ${this.name} lnd_btc` 
+    startCmd = startCmd.replace(/\s\s+/g, ' ')
+
+    console.log(`Starting ${this.name} node:`, startCmd)
+
+    try {
+      await exec(startCmd, { env: this.env })
+    } catch (e) {
+       if (e.message.match(/Cannot create container for service lnd_btc: Conflict/g))
+        console.warn(`Container for ${this.name} already exists. Skipping`)
+       else 
+         throw e
+    }
+
+    console.log(`Attempting connection with ${this.name}...`)
     let counter = 1, connection = false
     // only want to return when the node is reachable
-    while (!connection || counter < 10) {
+    while (!connection && counter < 10) {
       try {
         const info = await this.getInfo()
         if (info && info.version) connection = true
@@ -42,7 +72,10 @@ class NodeConfig {
       } catch (e) {}
       counter++
     }
+    if (!connection) throw new Error('Could not establish connection with node')
 
+    await this.setIdentity()
+    console.log(`${this.name.toUpperCase()}: ${this.identityPubkey}`)
     return
   }
 
@@ -54,34 +87,30 @@ class NodeConfig {
   }
 
   async setIdentity() {
-    const info = (await this.exec('getinfo')).stdout
-    this.identityPubkey = JSON.parse(info).identity_pubkey
+    const resp = (await this.exec('getinfo'))
+    if (resp.stderr) throw new Error(stderr)
+    try {
+      this.identityPubkey = JSON.parse(resp.stdout).identity_pubkey
+    } catch (e) {
+      console.log('Coudnt parse stdout:', resp.stdout)
+      throw e
+    }
   }
 
   async getInfo() {
     const resp = (await this.exec('getinfo'))
-    
+
+    if (resp.stderr.length) console.error('Problem connecting to node:', resp.stderr)
     return JSON.parse(resp.stdout)
   }
 }
 
 (async function() {
-  const { promisify } = require('util')
-
-  const exec = promisify(require('child_process').exec)
+  console.log('Building images...')
+  await exec('docker-compose build')
 
   const alice = new NodeConfig({ name: 'alice', port: 10001 })
-
-  try {
-    console.log('Starting alice node...')
-    await alice.startNode()
-  } catch (e) {
-    if (e.message.match(/Cannot create container for service lnd_btc: Conflict/g))
-      console.warn('Container for alice already exists. Skipping')
-    else  console.error('There was a problem starting alice node:', e)
-  }
-
-  await alice.setIdentity()
+  await alice.startNode()
 
   // Get an address from alice's node to use as the mining address for our full node
   // Needs to be a loop because sometimes even if the container is started
@@ -89,7 +118,7 @@ class NodeConfig {
   let MINING_ADDRESS, counter = 1, tries = 15
   while (!MINING_ADDRESS && counter < tries) {
     try {
-      console.log(`Attempting to get address from alice node. (Tries: ${counter}/${tries})`)
+      console.log(`Getting address from alice node.`)
       let { stdout, stderr} = await alice.exec('newaddress np2wkh')
       
       if (stdout)
@@ -124,7 +153,7 @@ class NodeConfig {
     if (
       blockchainInfo.blocks && 
       blockchainInfo.chain === 'simnet' && 
-      balance.confirmed_balance >= (100000000 * 50 * 400)
+      balance.confirmed_balance >= (1505000000000) // 400 simnet blocks worth of rewards
     ) {
       console.log('Found a simnet chain on persisted volumes')
       console.log('Height:', blockchainInfo.blocks)
@@ -138,6 +167,13 @@ class NodeConfig {
       balance = JSON.parse(balance)
       console.log(`Alice's balance: ${balance.confirmed_balance}`)
     }
+
+    // Next let's startup nodes for bob and carol using a neutrino backend
+    const bob = new NodeConfig({ name: 'bob', port: 10002, neutrino: true })
+    await bob.startNode()
+
+    const carol = new NodeConfig({ name: 'carol', port: 10003, neutrino: true })
+    await carol.startNode()
   } catch (e) {
     console.error('problem starting node:', e)
   }

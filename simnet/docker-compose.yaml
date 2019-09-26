@@ -24,6 +24,24 @@ services:
         - MINING_ADDRESS
         - NETWORK
       entrypoint: ["./start-btcd.sh"]
+      ports:
+        ## Comment these if they conflict with something else you're running.
+        #-- Mainnet
+        - "8333:8333"
+        - "8332:8332" # RPC
+        - "8334:8334" # Wallet
+        #-- Testnet
+        - "18333:18333"
+        - "18332:18332" # RPC
+        - "18334:18334" # Wallet
+        #-- Regtest
+        - "48444:48444"
+        - "48332:48332" # RPC
+        - "48334:48334" # Wallet
+        #-- Simnet
+        - "18555:18555"
+        - "18556:18556" # RPC
+        - "18558:18558" # Wallet
 
     btcctl:
       <<: *btc
@@ -33,7 +51,7 @@ services:
       entrypoint: ["./start-btcctl.sh"]
 
     lnd: &lnd
-      image: lnd
+      image: lnd-boltbox
       build:
         context: ../docker/lnd/
         dockerfile: Dockerfile
@@ -56,7 +74,7 @@ services:
           - "btcd:blockchain"
 
     lncli:
-      <<: *lnd_btc
+      <<: *lnd
       container_name: lncli
       entrypoint: ["./start-lncli.sh"]
 
