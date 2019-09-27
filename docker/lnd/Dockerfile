@@ -25,6 +25,9 @@ RUN cp /go/bin/lnd /bin/lnd
 RUN cp /go/bin/lncli /bin/lncli
 
 # Create and set permissions for lnd data directory
+# we're using a custom directory rather than /root/.lnd since when we run parallel nodes on the same host,
+# e.g. for simnet testing, we can add in sub directories, like `/lnd-data/alice`. Putting it in a wholly 
+# new directory can help avoid any conflicts and identify any missed settings
 RUN mkdir -p /lnd-data && chmod -R 777 /lnd-data
 
 COPY start-lnd.sh .
