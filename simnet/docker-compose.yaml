@@ -77,6 +77,7 @@ services:
       <<: *lnd
       container_name: lncli
       entrypoint: ["./start-lncli.sh"]
+      stdin_open: true
 
 volumes:
   # shared volume is need to store the btcd rpc certificates and use it within

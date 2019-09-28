@@ -27,3 +27,7 @@ An example of where this can cause problems is if you have a tls certificate tha
 In order for the cert to be regenerated though, the old one needs to be deleted. The output from the script
 can give you a hints regarding this. For example, since the node containers take the set namespaces `alice`,
 `bob`, and `carol`, it will tell you if those containers already exist and skip the command to create them.
+
+## TODO:
+
+- [ ] Consider creating lnd.conf files for each lnd container rather than setting in command line
