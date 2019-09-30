@@ -55,8 +55,6 @@ class NodeConfig {
 
     startCmd = startCmd.replace(/\s\s+/g, ' ')
 
-    // console.log(`Starting ${this.name} node:`, startCmd)
-
     try {
       await exec(startCmd, { env: this.env })
     } catch (e) {

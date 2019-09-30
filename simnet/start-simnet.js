@@ -15,7 +15,7 @@ const env = {
 
 function mineBlocks(num=1) {
   assert(typeof num === 'number')
-  return exec(`docker-compose run btcctl generate 400`, { env }) 
+  return exec(`docker-compose run -e NETWORK=simnet btcctl generate 400`, { env }) 
 }
 
 async function getBlockchainInfo(){
@@ -178,6 +178,7 @@ async function getBlockchainInfo(){
     console.log('Blockchain')
     console.log('Height:', blockchainInfo.blocks)
     console.log('Network:', blockchainInfo.chain)
+    console.log('Command Prefix:', colorize(`docker-compose run -e NETWORK=simnet btcctl [BTCCTL ARGS]`, 'bgYellow'))
 
     console.log('\n')
     const nodes = [alice, bob, carol]

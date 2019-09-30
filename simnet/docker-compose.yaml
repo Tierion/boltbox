@@ -64,7 +64,6 @@ services:
       volumes:
           - shared:/rpc
           - lnd:/lnd-data
-          - ./start-lnd.sh:/start-lnd.sh
       entrypoint: ["./start-lnd.sh"]
 
     lnd_btc: &lnd_btc
