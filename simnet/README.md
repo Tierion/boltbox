@@ -29,6 +29,8 @@ Then all you have to do is run the node script and watch the network get spun up
 $ node start-simnet.js
 ```
 
+`make simnet` also works from the main project directory.
+
 ## What It Does
 The script will narrate most of its steps as it walks through everything. As a quick summary though,
 the script will do the following in order:
@@ -49,7 +51,7 @@ a quarter of the balance to the peer
 1. Mine 10 blocks to lock in channel funding transactions
 
 Once this is done you will have:
-- Bitcoin Simnet blockchain with height of at least 417 blocks
+- Bitcoin Simnet blockchain with height of at least 411 blocks
 - Alice node funded with an on-chain balance and 1 funded channel opened with Bob
 - Bob node funded with an on-chain balance and 2 funded channels, one with Alice and one with Carol
 - Carol node funded with an on-chain balance and 1 funded channel opened with Bob
