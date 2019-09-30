@@ -40,6 +40,7 @@ set_default() {
 
 # Set default variables if needed.
 PUBLICIP=$(set_default "$PUBLICIP" "127.0.0.1")
+LISTEN=$(set_default "$LISTEN" "9735")
 RPCUSER=$(set_default "$RPCUSER" "devuser")
 RPCPASS=$(set_default "$RPCPASS" "devpass")
 DEBUG=$(set_default "$DEBUG" "debug")
@@ -49,29 +50,50 @@ BACKEND=$(set_default "$BACKEND" "btcd")
 LNDDIR=$(set_default "$LNDDIR" "/lnd-data")
 RESTLISTEN=$(set_default "$RESTLISTEN" "8080")
 RPCLISTEN=$(set_default "$RPCLISTEN" "10009")
+CHAN_CONFS=$(set_default "$CHAN_CONFS" 3)
+
+if [[ -n $BACKEND && "$BACKEND" == "neutrino" ]]; then
+  NEUTRINO=$(set_default "$NEUTRINO" "faucet.lightning.community:18333")
+fi 
+
 if [[ "$CHAIN" == "litecoin" ]]; then
     BACKEND="ltcd"
 fi
 
 PARAMS=$(echo $PARAMS \
-    "--noseedbackup" \
     "--lnddir=$LNDDIR" \
+    "--debuglevel=$DEBUG" \
     "--logdir=$LNDDIR/logs" \
     "--datadir=$LNDDIR/data" \
     "--$CHAIN.active" \
     "--$CHAIN.$NETWORK" \
-    "--$CHAIN.node=btcd" \
-    "--$BACKEND.rpchost=blockchain" \
-    "--$BACKEND.rpccert=/rpc/rpc.cert" \
-    "--$BACKEND.rpcuser=$RPCUSER" \
-    "--$BACKEND.rpcpass=$RPCPASS" \
-    "--externalip=$PUBLICIP" \
+    "--$CHAIN.node=$BACKEND" \
+    "--externalip=$PUBLICIP:$LISTEN" \
+    "--listen=0.0.0.0:$LISTEN" \
     "--restlisten=0.0.0.0:$RESTLISTEN" \
     "--rpclisten=0.0.0.0:$RPCLISTEN" \
+    "--$CHAIN.defaultchanconfs=$CHAN_CONFS" \
 )
 
-if [-n $TLSEXTRADOMAIN]; then
+if [[ $BACKEND == "btcd" ]]; then
+    PARAMS=$(echo $PARAMS \
+        "--btcd.rpchost=blockchain" \
+        "--btcd.rpccert=/rpc/rpc.cert" \
+        "--btcd.rpcuser=$RPCUSER" \
+        "--btcd.rpcpass=$RPCPASS"
+    )
+fi
+
+if [[ -n $TLSEXTRADOMAIN ]]; then
   PARAMS="$PARAMS --tlsextradomain=$TLSEXTRADOMAIN"
+fi
+
+if [[ -n $NOSEEDBACKUP ]]; then
+  PARAMS="$PARAMS --noseedbackup"
+fi
+
+if [[ -n $NEUTRINO ]]; then
+  PARAMS="$PARAMS --neutrino.connect=$NEUTRINO"
 fi
 
 # Add user parameters to command.

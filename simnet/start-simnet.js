@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 const { promisify } = require('util')
-
+const assert = require('assert')
 const exec = promisify(require('child_process').exec)
+
+const { NodeConfig, colorLog, colorize } = require('../utils')
 
 const NETWORK = 'simnet'
 // env vars to use for all docker calls
@@ -10,95 +12,31 @@ const env = {
   COMPOSE_INTERACTIVE_NO_CLI: true,
 }
 
-/**
- * A class used to create NodeConfigs for creating and interacting simnet
- * lightning nodes via docker-compose
- * @pararms {String} name - name of node (e.g. 'alice', 'bob', 'carol')
- * @pararms {Number} port - RPC port that will be exposed and used to communicate via lncli container
- */
-class NodeConfig {
-  constructor({ name, port }) {
-    this.name = name
-    this.port = port
-    this.lnddir = `/lnd-data/${name}`
-    this.lncli = `docker-compose run -e LNDDIR=${this.lnddir} -e RPCSERVER="${name}:${port}" lncli`
-    this.env = {
-      ...env, 
-      TLSEXTRADOMAIN: this.name
-     }
-  }
+function mineBlocks(num=1) {
+  assert(typeof num === 'number')
+  return exec(`docker-compose run -e NETWORK=simnet btcctl generate ${num}`, { env }) 
+}
 
-  async startNode() {
-    await exec(`docker-compose run -d -e LNDDIR=${this.lnddir} -e RPCLISTEN=${this.port} -p ${this.port}:${this.port} --name ${this.name} lnd_btc --tlsextradomain="${this.name}"`, { env: this.env } )
-    
-    console.log(`Testing connection to ${this.name}...`)
-    let counter = 1, connection = false
-    // only want to return when the node is reachable
-    while (!connection || counter < 10) {
-      try {
-        const info = await this.getInfo()
-        if (info && info.version) connection = true
-        counter++
-      } catch (e) {}
-      counter++
-    }
-
-    return
-  }
-
-  exec(cmd) {
-    if (typeof cmd !== 'string')
-      throw new Error('must pass a string for the list of commands to run w/ lncli')
-
-    return exec(`${this.lncli} ${cmd}`, { env: this.env })
-  }
-
-  async setIdentity() {
-    const info = (await this.exec('getinfo')).stdout
-    this.identityPubkey = JSON.parse(info).identity_pubkey
-  }
-
-  async getInfo() {
-    const resp = (await this.exec('getinfo'))
-    
-    return JSON.parse(resp.stdout)
-  }
+async function getBlockchainInfo(){
+  let blockchainInfo = (await exec(`docker-compose run btcctl getblockchaininfo`)).stdout
+  return JSON.parse(blockchainInfo)
 }
 
 (async function() {
-  const { promisify } = require('util')
+  console.log('Building images...')
+  await exec('docker-compose build')
 
-  const exec = promisify(require('child_process').exec)
-
-  const alice = new NodeConfig({ name: 'alice', port: 10001 })
-
-  try {
-    console.log('Starting alice node...')
-    await alice.startNode()
-  } catch (e) {
-    if (e.message.match(/Cannot create container for service lnd_btc: Conflict/g))
-      console.warn('Container for alice already exists. Skipping')
-    else  console.error('There was a problem starting alice node:', e)
-  }
-
-  await alice.setIdentity()
+  const alice = new NodeConfig({ name: 'alice', rpc: 10001, p2p: 19735, network: env.NETWORK })
+  colorLog(colorize(`Starting ${alice.name}'s node...`, 'bright'), 'magenta')
+  await alice.startNode()
 
   // Get an address from alice's node to use as the mining address for our full node
   // Needs to be a loop because sometimes even if the container is started
   // the node process may not have fully booted yet
+  console.log(`Getting address from alice for mining reward destination.`)
   let MINING_ADDRESS, counter = 1, tries = 15
   while (!MINING_ADDRESS && counter < tries) {
-    try {
-      console.log(`Attempting to get address from alice node. (Tries: ${counter}/${tries})`)
-      let { stdout, stderr} = await alice.exec('newaddress np2wkh')
-      
-      if (stdout)
-        MINING_ADDRESS = JSON.parse(stdout).address
-      else if (stderr) {
-        console.error(stderr)
-        break
-      }
-    } catch (e) {}
+    MINING_ADDRESS = await alice.getAddress()
     counter++
   }
 
@@ -112,33 +50,177 @@ class NodeConfig {
     console.log('Starting btcd full node...')
     await exec(`docker-compose up -d btcd`, { env: {...env, MINING_ADDRESS }})
     
+    console.log('\n')
     // check node status before mining any blocks
+    let blockchainInfo = await getBlockchainInfo()
 
-    let blockchainInfo = (await exec(`docker-compose run btcctl getblockchaininfo`)).stdout
-    blockchainInfo = JSON.parse(blockchainInfo)
-
-    let balance = (await alice.exec('walletbalance')).stdout
-    balance = JSON.parse(balance)
+    let balance = await alice.getBalance()
 
     // check if we already have a mined blockchain and funded wallet on persisted volume
     if (
       blockchainInfo.blocks && 
       blockchainInfo.chain === 'simnet' && 
-      balance.confirmed_balance >= (100000000 * 50 * 400)
+      balance.confirmed_balance
     ) {
       console.log('Found a simnet chain on persisted volumes')
       console.log('Height:', blockchainInfo.blocks)
       console.log('Network:', blockchainInfo.chain)
       console.log('Alice\'s balance:', balance.confirmed_balance)
+      console.log('\n')
     } else {
       console.log('No existing simnet chain found. Creating new one.')
       console.log('Mining 400 blocks...')
-      await exec(`docker-compose run btcctl generate 400`, { env }) 
-      let balance = (await alice.exec('walletbalance')).stdout
-      balance = JSON.parse(balance)
+      await mineBlocks(400)
+      let balance = await alice.getBalance()
       console.log(`Alice's balance: ${balance.confirmed_balance}`)
     }
+   
+    // Startup nodes for bob and carol using a neutrino backend
+    const bob = new NodeConfig({ name: 'bob', rpc: 10002, neutrino: true, p2p: 19736, network: env.NETWORK })
+    colorLog(colorize(`Starting ${bob.name}'s node...`, 'bright'), 'magenta')
+    await bob.startNode()
+
+    const carol = new NodeConfig({ name: 'carol', rpc: 10003, neutrino: true, p2p: 19737, network: env.NETWORK })
+    colorLog(colorize(`Starting ${carol.name}'s node...`, 'bright'), 'magenta')
+    await carol.startNode()
+
+    // Fund bob and carol from alice's wallet
+    console.log('Funding bob and carol...')
+
+    // send from alice to bob
+    var [aliceBalance, bobBalance, carolBalance] = await Promise.all([alice.getBalance(), bob.getBalance(), carol.getBalance()])
+
+    if (bobBalance.confirmed_balance > 0 && carolBalance.confirmed_balance > 0) {
+      console.log('Bob and Carol are already funded')
+      chanBalance = bobBalance / 2
+    } else {
+      const bobAddr = await bob.getAddress()
+      const carolAddr = await carol.getAddress()
+      const amount = Math.floor(aliceBalance.confirmed_balance / 4)
+
+      console.log(`Sending ${amount} satoshis to bob and carol.`)
+      
+      await alice.exec(`sendcoins ${bobAddr} ${amount}`)
+      // send from alice to carol
+      await alice.exec(`sendcoins ${carolAddr} ${amount}`)
+
+      await mineBlocks()
+
+      var [aliceBalance, bobBalance, carolBalance] = await Promise.all([alice.getBalance(), bob.getBalance(), carol.getBalance()])
+
+      console.log('\n')
+      colorLog(colorize('Balances (satoshis)', 'bright'), 'blue')
+      console.log('Alice: ', colorize(aliceBalance.confirmed_balance, 'bgGreen'))
+      console.log('Bob:   ', colorize(bobBalance.confirmed_balance, 'bgGreen'))
+      console.log('Carol: ', colorize(carolBalance.confirmed_balance, 'bgGreen'))
+      console.log('\n')
+    }
+
+    // Add peers and open channels: alice to bob, bob to carol, and carol to alice
+    console.log('Adding peers and opening channels between alice, bob, and carol') 
+    var [alicePeers, bobPeers, carolPeers] = await Promise.all([alice.listPeers(), bob.listPeers(), carol.listPeers()])
+
+    if (alicePeers.length && bobPeers.length && carolPeers.length) {
+      console.log('Already connected to peers. Skipping peer connection...')
+    } else {
+      console.log('Connecting alice and bob as peers...')
+      await alice.exec(`connect ${bob.identityPubkey}@${bob.name}:${bob.p2pPort}`)
+      
+      console.log('Connecting bob and carol as peers...')
+      await bob.exec(`connect ${carol.identityPubkey}@${carol.name}:${carol.p2pPort}`)
+      
+      var [alicePeers, bobPeers, carolPeers] = await Promise.all([alice.listPeers(), bob.listPeers(), carol.listPeers()])
+
+      assert.equal(alicePeers.length, 1, 'Expected alice to have 1 peer')
+      assert.equal(bobPeers.length, 2, 'Expected bob to have 2 peer')
+      assert.equal(carolPeers.length, 1, 'Expected carol to have 1 peer')
+    }
+
+    var [aliceChannels, bobChannels, carolChannels] = await Promise.all([alice.listChannels(), bob.listChannels(), carol.listChannels()])
+
+    if (aliceChannels.length && bobChannels.length && carolChannels.length) {
+      console.log('Nodes already have channels open. Skipping channel opens...')
+    } else {
+      console.log('Opening a 1000000 satoshi channel from alice to bob. Pushing 250000 satoshis')
+      await alice.openChannel(bob, 1000000, 250000)
+
+      console.log('Opening a 1000000 satoshi channel from bob to carol. Pushing 250000 satoshis')
+      await bob.openChannel(carol, 1000000, 250000)
+      
+      console.log('Sent funding txs. Mining 10 blocks to confirm channels')
+
+      await mineBlocks(10)
+
+      var [aliceChannels, bobChannels, carolChannels] = await Promise.all([alice.listChannels(), bob.listChannels(), carol.listChannels()])
+      assert(aliceChannels.length, 'alice\'s channels didn\'t open')
+      assert(bobChannels.length, 'bob\'s channels didn\'t open')
+      assert(carolChannels.length, 'carol\'s channels didn\'t open')
+      console.log('Channels all opened successfully')
+    }
+
+
+    console.log('\nYour network is ready to go! Gathering network information...\n')
+    
+    blockchainInfo = await getBlockchainInfo()
+    
+    var [
+      aliceBalance, 
+      bobBalance, 
+      carolBalance, 
+      aliceLnBalance, 
+      bobLnBalance, 
+      carolLnBalance
+    ] = await Promise.all([
+      alice.getBalance(), 
+      bob.getBalance(), 
+      carol.getBalance(), 
+      alice.channelBalance(), 
+      bob.channelBalance(), 
+      carol.channelBalance()]
+    )
+    console.log('\n')
+
+    colorLog('***** Network summary ***** \n', 'cyan')
+    colorLog(colorize('**Blockchain**', 'bright'), 'blue')
+    console.log('Height:', blockchainInfo.blocks)
+    console.log('Network:', blockchainInfo.chain)
+    console.log('Command Prefix:', colorize(`docker-compose run -e NETWORK=simnet btcctl [BTCCTL ARGS]`, 'bgYellow'))
+
+    console.log('\n')
+    const nodes = [alice, bob, carol]
+
+    alice.balance = aliceBalance.confirmed_balance
+    alice.lnBalance = aliceLnBalance.balance
+    bob.balance = bobBalance.confirmed_balance
+    bob.lnBalance = bobLnBalance.balance
+    carol.balance = carolBalance.confirmed_balance
+    carol.lnBalance = carolLnBalance.balance
+
+    for (let node of nodes) {
+      colorLog(`**${node.name.toUpperCase()}**`, 'cyan')
+      console.log('Wallet Balance:', node.balance)
+      console.log('Channel Balance:', node.lnBalance)
+      console.log(`Identity: ${node.identityPubkey}@${node.name}:${node.p2pPort}`)
+      console.log('RPC Port:', node.rpcPort)
+      console.log(`Command Prefix:`, colorize(node.lncli, 'bgYellow'))
+      
+      console.log('\n')
+    }
+    
+    colorLog('********************************', 'magenta')
+
+    console.log(
+      'To interact with any of your nodes, simply copy the Command Prefix for the node you\'d like to run a command against and \
+paste it into your terminal followed by the lncli command you\'d like to run.', 
+      `Make sure to run from the current directory (${process.cwd()})`
+    )
+    console.log(`For example, to get info about the ${carol.name} node, simply run:\n`)
+    colorLog(`${carol.lncli} getinfo`, 'bgYellow')
+
+    colorLog('********************************', 'magenta')
+
   } catch (e) {
-    console.error('problem starting node:', e)
+    if (e.stderr) console.error('Encountered error starting network:', e.stderr)
+    else console.error('Encountered error:', e)
   }
 })()
