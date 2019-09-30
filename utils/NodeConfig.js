@@ -11,7 +11,7 @@ const exec = promisify(require('child_process').exec)
  * @params {Number} p2p - p2p listening port
  */
 class NodeConfig {
-  constructor({ name, rpc, neutrino, p2p, network = 'mainnet', lnddir }) {
+  constructor({ name, rpc, neutrino, p2p, network = 'mainnet', lnddir, backend }) {
     assert(typeof rpc === 'number', 'NodeConfig requires a custom rpc port to create a node')
     assert(typeof p2p === 'number', 'NodeConfig requires a custom p2p listening port to create a node')
     assert(typeof name === 'string', 'NodeConfig requires a string to set the name of the node to')
@@ -32,10 +32,19 @@ class NodeConfig {
        assert(typeof neutrino === 'boolean', 'Must pass a boolean for neutrino option')
        this.neutrino = neutrino
      }
+
+     if (backend) {
+       assert(typeof backend === 'string', 'Must pass a string to use as backend connetion information')
+       this.backend = backend
+     } else if (neutrino && network === 'simnet') {
+       this.backend = 'btcd:18555'
+     } else if (neutrino && network === 'testnet') {
+       this.backend = 'faucet.lightning.community:18333' 
+     }
+
   }
 
   async startNode() {
-
     let startCmd = 
     `docker-compose run -d \
     -e LNDDIR='${this.lnddir}' \
@@ -45,7 +54,7 @@ class NodeConfig {
     -e LISTEN='${this.p2pPort}'`
     
     if (this.neutrino) {
-      startCmd = `${startCmd} -e NEUTRINO=btcd:18555 -e BACKEND=neutrino`
+      startCmd = `${startCmd} -e NEUTRINO=${this.backend} -e BACKEND=neutrino`
     }
     
     startCmd = `${startCmd} \
@@ -64,7 +73,7 @@ class NodeConfig {
          throw e
     }
 
-    console.log(`Attempting connection with ${this.name}...`)
+    console.log(`Testing connection with ${this.name}...`)
     let counter = 1, connection = false
     // only want to return when the node is reachable
     while (!connection && counter < 10) {
@@ -80,7 +89,7 @@ class NodeConfig {
     }
     if (!connection) throw new Error('Could not establish connection with node')
 
-    console.log(`${this.name.toUpperCase()} pubkey: ${this.identityPubkey}`)
+    console.log(`${this.name.toUpperCase()} pubkey: ${this.identityPubkey}\n`)
     return
   }
 
@@ -100,8 +109,8 @@ class NodeConfig {
     } catch (e) {
       // NOTE: This will just run an infinite loop in case there was just an intermediate
       // failure w/ a connection. May need to SIGINT if the problem is not intermittent.
-      console.error(`Problem executing command for ${this.name}: ${cmd}\n`, e.message)
-      console.log('Trying again...')
+      console.error(`Problem executing command for ${this.name}: ${cmd}`, e.message)
+      console.log('Trying again...\n')
       return this.exec(cmd)
     }
   }

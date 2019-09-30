@@ -5,7 +5,6 @@ const exec = promisify(require('child_process').exec)
 
 const { NodeConfig, colorLog, colorize } = require('../utils')
 
-
 const NETWORK = 'simnet'
 // env vars to use for all docker calls
 const env = {
@@ -15,7 +14,7 @@ const env = {
 
 function mineBlocks(num=1) {
   assert(typeof num === 'number')
-  return exec(`docker-compose run -e NETWORK=simnet btcctl generate 400`, { env }) 
+  return exec(`docker-compose run -e NETWORK=simnet btcctl generate ${num}`, { env }) 
 }
 
 async function getBlockchainInfo(){
@@ -28,6 +27,7 @@ async function getBlockchainInfo(){
   await exec('docker-compose build')
 
   const alice = new NodeConfig({ name: 'alice', rpc: 10001, p2p: 19735, network: env.NETWORK })
+  colorLog(colorize(`Starting ${alice.name}'s node...`, 'bright'), 'magenta')
   await alice.startNode()
 
   // Get an address from alice's node to use as the mining address for our full node
@@ -50,6 +50,7 @@ async function getBlockchainInfo(){
     console.log('Starting btcd full node...')
     await exec(`docker-compose up -d btcd`, { env: {...env, MINING_ADDRESS }})
     
+    console.log('\n')
     // check node status before mining any blocks
     let blockchainInfo = await getBlockchainInfo()
 
@@ -65,6 +66,7 @@ async function getBlockchainInfo(){
       console.log('Height:', blockchainInfo.blocks)
       console.log('Network:', blockchainInfo.chain)
       console.log('Alice\'s balance:', balance.confirmed_balance)
+      console.log('\n')
     } else {
       console.log('No existing simnet chain found. Creating new one.')
       console.log('Mining 400 blocks...')
@@ -72,12 +74,14 @@ async function getBlockchainInfo(){
       let balance = await alice.getBalance()
       console.log(`Alice's balance: ${balance.confirmed_balance}`)
     }
-
+   
     // Startup nodes for bob and carol using a neutrino backend
     const bob = new NodeConfig({ name: 'bob', rpc: 10002, neutrino: true, p2p: 19736, network: env.NETWORK })
+    colorLog(colorize(`Starting ${bob.name}'s node...`, 'bright'), 'magenta')
     await bob.startNode()
 
     const carol = new NodeConfig({ name: 'carol', rpc: 10003, neutrino: true, p2p: 19737, network: env.NETWORK })
+    colorLog(colorize(`Starting ${carol.name}'s node...`, 'bright'), 'magenta')
     await carol.startNode()
 
     // Fund bob and carol from alice's wallet
@@ -104,10 +108,12 @@ async function getBlockchainInfo(){
 
       var [aliceBalance, bobBalance, carolBalance] = await Promise.all([alice.getBalance(), bob.getBalance(), carol.getBalance()])
 
-      console.log('Balances')
-      console.log('Alice: ', aliceBalance.confirmed_balance)
-      console.log('Bob:   ', bobBalance.confirmed_balance)
-      console.log('Carol: ', carolBalance.confirmed_balance)
+      console.log('\n')
+      colorLog(colorize('Balances (satoshis)', 'bright'), 'blue')
+      console.log('Alice: ', colorize(aliceBalance.confirmed_balance, 'bgGreen'))
+      console.log('Bob:   ', colorize(bobBalance.confirmed_balance, 'bgGreen'))
+      console.log('Carol: ', colorize(carolBalance.confirmed_balance, 'bgGreen'))
+      console.log('\n')
     }
 
     // Add peers and open channels: alice to bob, bob to carol, and carol to alice
@@ -175,7 +181,7 @@ async function getBlockchainInfo(){
     console.log('\n')
 
     colorLog('***** Network summary ***** \n', 'cyan')
-    console.log('Blockchain')
+    colorLog(colorize('**Blockchain**', 'bright'), 'blue')
     console.log('Height:', blockchainInfo.blocks)
     console.log('Network:', blockchainInfo.chain)
     console.log('Command Prefix:', colorize(`docker-compose run -e NETWORK=simnet btcctl [BTCCTL ARGS]`, 'bgYellow'))

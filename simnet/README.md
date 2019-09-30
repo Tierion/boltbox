@@ -5,7 +5,7 @@
 The purpose of this script is to allow developers to quickly and easily bootstrap a simnet 
 testing environment for working with lnd. 
 
-Everything is run in their own docker containers. This allows you to run a portable, isolated,
+Everything is run in its own docker container. This allows you to run a portable, isolated,
 and easily reproducible testing environment. 
 
 
@@ -41,11 +41,18 @@ the script will do the following in order:
 1. Confirm mined blocks and that Alice has a spendable balance
 1. Start up two more containers: Bob and Carol. These will be backed by light clients, neutrino nodes pointed
 to the btcd full node started earlier.
-1. Fund bob and carol's wallets (Alice will pay each of them approx. 25% of her balance if they are unfunded)
-1. Mine 1 block with btcd container to confirm the balance
+1. Fund bob and carol's wallets (Alice will pay each of them approximately 25% of her balance if they are unfunded)
+1. Mine 1 block with btcd container to confirm the funding transactions
 1. Add peers- Alice will connect to bob and bob will connect to carol (skips if already connected)
 1. Open channels- Alice will open a channel with bob and bob will open one with carol, both pushing
 a quarter of the balance to the peer
+1. Mine 10 blocks to lock in channel funding transactions
+
+Once this is done you will have:
+- Bitcoin Simnet blockchain with height of at least 417 blocks
+- Alice node funded with an on-chain balance and 1 funded channel opened with Bob
+- Bob node funded with an on-chain balance and 2 funded channels, one with Alice and one with Carol
+- Carol node funded with an on-chain balance and 1 funded channel opened with Bob
 
 ### Interacting with your network
 Once the network is bootstrapped the script will display information about the network and all the 
@@ -127,3 +134,4 @@ can give you a hints regarding this. For example, since the node containers take
 - [ ] Create separate scripts for running the cli commands for each node (so the user doesn't have to copy and paste manually)
 - [ ] Script to remove containers
 - [ ] Optimize build for cleaning up intermediate containers
+- [ ] Utility for extracting auth configs (tls.cert and macaroons)

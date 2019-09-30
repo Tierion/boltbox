@@ -1,3 +1,9 @@
+/** 
+ * @file Logging utilities for decorating stdout
+ * Very simple helpers. If this gets more complex, we can consider 
+ * having external dependencies.
+ */
+
 const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
