@@ -6,6 +6,7 @@ services:
     # container start within starting script.
     btc: &btc
       image: btcd
+      user: ${UID}:${GROUPS}
       build:
         context: ../docker/btcd/
       volumes:
@@ -52,6 +53,7 @@ services:
 
     lnd: &lnd
       image: lnd-boltbox
+      user: ${UID}:${GROUPS}
       build:
         context: ../docker/lnd/
         dockerfile: Dockerfile

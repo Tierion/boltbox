@@ -127,25 +127,33 @@ class NodeConfig {
     const address = await this.exec('newaddress np2wkh')
     if (!address || !address.address) {
       console.error('Problem with address response:', address)
-      throw new Error('Problem with getting addresses')
+      return this.getAddress()
     }
     return address.address
   }
 
   async getBalance() {
-    return await this.exec('walletbalance')
+    const balance = await this.exec('walletbalance')
+    if (!balance) return this.getBalance()
+    return balance
   }
 
   async channelBalance() {
-    return await this.exec('channelbalance')
+    const balance = await this.exec('channelbalance')
+    if (!balance) return this.channelBalance()
+    return balance
   }
 
   async listPeers() {
-    return (await this.exec('listpeers')).peers
+    const peers = await this.exec('listpeers')
+    if (!peers) return this.listPeers()
+    return peers.peers 
   }
 
   async listChannels() {
-    return (await this.exec('listchannels')).channels
+    const channels = await this.exec('listchannels')
+    if (!channels) return this.listChannels()
+    return channels.channels
   }
 
   async openChannel(nodeOrIdentity, local, push=0) {

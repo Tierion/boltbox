@@ -47,10 +47,9 @@ async function getBlockchainInfo(){
 
   // Run btcd node with alice's address as the mining address constant
   try {
-    console.log('Starting btcd full node...')
+    colorLog(colorize(`\nStarting btcd full node...\n`, 'bright'), 'magenta')
     await exec(`docker-compose up -d btcd`, { env: {...env, MINING_ADDRESS }})
     
-    console.log('\n')
     // check node status before mining any blocks
     let blockchainInfo = await getBlockchainInfo()
 
@@ -110,6 +109,7 @@ async function getBlockchainInfo(){
 
       console.log('\n')
       colorLog(colorize('Balances (satoshis)', 'bright'), 'blue')
+      
       console.log('Alice: ', colorize(aliceBalance.confirmed_balance, 'bgGreen'))
       console.log('Bob:   ', colorize(bobBalance.confirmed_balance, 'bgGreen'))
       console.log('Carol: ', colorize(carolBalance.confirmed_balance, 'bgGreen'))
@@ -152,6 +152,7 @@ async function getBlockchainInfo(){
       await mineBlocks(10)
 
       var [aliceChannels, bobChannels, carolChannels] = await Promise.all([alice.listChannels(), bob.listChannels(), carol.listChannels()])
+      
       assert(aliceChannels.length, 'alice\'s channels didn\'t open')
       assert(bobChannels.length, 'bob\'s channels didn\'t open')
       assert(carolChannels.length, 'carol\'s channels didn\'t open')
@@ -181,7 +182,7 @@ async function getBlockchainInfo(){
     console.log('\n')
 
     colorLog('***** Network summary ***** \n', 'cyan')
-    colorLog(colorize('**Blockchain**', 'bright'), 'blue')
+    colorLog(colorize('**BLOCKCHAIN**', 'bright'), 'blue')
     console.log('Height:', blockchainInfo.blocks)
     console.log('Network:', blockchainInfo.chain)
     console.log('Command Prefix:', colorize(`docker-compose run -e NETWORK=simnet btcctl [BTCCTL ARGS]`, 'bgYellow'))
