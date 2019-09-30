@@ -40,6 +40,7 @@ set_default() {
 
 # Set default variables if needed.
 PUBLICIP=$(set_default "$PUBLICIP" "127.0.0.1")
+LISTEN=$(set_default "$LISTEN" "9735")
 RPCUSER=$(set_default "$RPCUSER" "devuser")
 RPCPASS=$(set_default "$RPCPASS" "devpass")
 DEBUG=$(set_default "$DEBUG" "debug")
@@ -67,7 +68,8 @@ PARAMS=$(echo $PARAMS \
     "--$CHAIN.active" \
     "--$CHAIN.$NETWORK" \
     "--$CHAIN.node=$BACKEND" \
-    "--externalip=$PUBLICIP" \
+    "--externalip=$PUBLICIP:$LISTEN" \
+    "--listen=0.0.0.0:$LISTEN" \
     "--restlisten=0.0.0.0:$RESTLISTEN" \
     "--rpclisten=0.0.0.0:$RPCLISTEN" \
     "--$CHAIN.defaultchanconfs=$CHAN_CONFS" \

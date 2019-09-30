@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 const { promisify } = require('util')
 const assert = require('assert')
-
 const exec = promisify(require('child_process').exec)
+
+const { NodeConfig, colorLog, colorize } = require('../utils')
+
 
 const NETWORK = 'simnet'
 // env vars to use for all docker calls
@@ -21,160 +23,11 @@ async function getBlockchainInfo(){
   return JSON.parse(blockchainInfo)
 }
 
-/**
- * A class used to create NodeConfigs for creating and interacting simnet
- * lightning nodes via docker-compose
- * @params {String} name - name of node (e.g. 'alice', 'bob', 'carol')
- * @params {Number} rpc - RPC port that will be exposed and used to communicate via lncli container
- * @params {Boolean} neutrino - whether or not to run as neutrino light client
- * @params {Number} p2p - p2p listening port
- */
-class NodeConfig {
-  constructor({ name, rpc, neutrino, p2p }) {
-    assert(typeof rpc === 'number', 'NodeConfig requires a custom rpc port to create a node')
-    assert(typeof p2p === 'number', 'NodeConfig requires a custom p2p listening port to create a node')
-    assert(typeof name === 'string', 'NodeConfig requires a string to set the name of the node to')
-
-    this.name = name
-    this.rpcPort = rpc
-    this.p2pPort = p2p
-    this.lnddir = `/lnd-data/${name}`
-    this.lncli = `docker-compose run -e LNDDIR=${this.lnddir} -e RPCSERVER="${name}:${rpc}" -e NETWORK=simnet lncli`
-    this.env = {
-      ...env, 
-      TLSEXTRADOMAIN: this.name, // adds docker host to be added to tls cert
-     }
-
-     if (neutrino) {
-       assert(typeof neutrino === 'boolean', 'Must pass a boolean for neutrino option')
-       this.neutrino = neutrino
-     }
-  }
-
-  async startNode() {
-
-    let startCmd = 
-    `docker-compose run -d \
-    -e LNDDIR='${this.lnddir}' \
-    -e RPCLISTEN=${this.rpcPort} \
-    -e NOSEEDBACKUP='true'\
-    -e TLSEXTRADOMAIN='${this.name}'
-    -e LISTEN='${this.p2pPort}'`
-    
-    if (this.neutrino) {
-      startCmd = `${startCmd} -e NEUTRINO=btcd:18555 -e BACKEND=neutrino`
-    }
-    
-    startCmd = `${startCmd} \
-    -p ${this.rpcPort}:${this.rpcPort} \
-    -p ${this.p2pPort}:${this.p2pPort} \
-    --name ${this.name} lnd_btc`
-
-    startCmd = startCmd.replace(/\s\s+/g, ' ')
-
-    // console.log(`Starting ${this.name} node:`, startCmd)
-
-    try {
-      await exec(startCmd, { env: this.env })
-    } catch (e) {
-       if (e.message.match(/Cannot create container for service lnd_btc: Conflict/g))
-        console.warn(`Container for ${this.name} already exists. Skipping startup.`)
-       else 
-         throw e
-    }
-
-    console.log(`Attempting connection with ${this.name}...`)
-    let counter = 1, connection = false
-    // only want to return when the node is reachable
-    while (!connection && counter < 10) {
-      try {
-        const info = await this.getInfo()
-        if (info && info.version) {
-          this.setIdentity(info.identity_pubkey)
-          connection = true
-        }
-        counter++
-      } catch (e) {}
-      counter++
-    }
-    if (!connection) throw new Error('Could not establish connection with node')
-
-    console.log(`${this.name.toUpperCase()} pubkey: ${this.identityPubkey}`)
-    return
-  }
-
-  async exec(cmd) {
-    if (typeof cmd !== 'string')
-      throw new Error('must pass a string for the list of commands to run w/ lncli')
-
-    try {
-      let { stdout, stderr} = await exec(`${this.lncli} ${cmd}`, { env: this.env })
-      if (stdout && stdout.length)
-        return JSON.parse(stdout)
-      else if (stderr && stderr.length) {
-        console.error('Problem connecting to node:', stderr)
-      } else {
-        throw new Error('No response from container.')
-      }
-    } catch (e) {
-      // NOTE: This will just run an infinite loop in case there was just an intermediate
-      // failure w/ a connection. May need to SIGINT if the problem is not intermittent.
-      console.error(`Problem executing command for ${this.name}: ${cmd}\n`, e.message)
-      console.log('Trying again...')
-      return this.exec(cmd)
-    }
-  }
-
-  async setIdentity(pubkey) {
-    this.identityPubkey = pubkey
-  }
-
-  getInfo() {
-    return this.exec('getinfo')
-  }
-
-  async getAddress() {
-    const address = await this.exec('newaddress np2wkh')
-    if (!address || !address.address) {
-      console.error('Problem with address response:', address)
-      throw new Error('Problem with getting addresses')
-    }
-    return address.address
-  }
-
-  async getBalance() {
-    return await this.exec('walletbalance')
-  }
-
-  async channelBalance() {
-    return await this.exec('channelbalance')
-  }
-
-  async listPeers() {
-    return (await this.exec('listpeers')).peers
-  }
-
-  async listChannels() {
-    return (await this.exec('listchannels')).channels
-  }
-
-  async openChannel(nodeOrIdentity, local, push=0) {
-    let nodeKey = nodeOrIdentity.identityPubkey || nodeOrIdentity
-    assert(typeof nodeKey === 'string' && nodeKey.length, 'Expected either a NodeConfig or an identity pubkey string')
-    assert(typeof local === 'number', 'Expected an amount of satoshis to open the channel with ')
-    assert(typeof push === 'number', 'Push amount for channel open must be an integer (number of satoshis)')
-
-    const resp = await this.exec(`openchannel ${nodeKey} ${local} ${push}`)
-
-    return resp
-  }
-}
-
 (async function() {
   console.log('Building images...')
   await exec('docker-compose build')
 
-  const alice = new NodeConfig({ name: 'alice', rpc: 10001, p2p: 19735 })
+  const alice = new NodeConfig({ name: 'alice', rpc: 10001, p2p: 19735, network: env.NETWORK })
   await alice.startNode()
 
   // Get an address from alice's node to use as the mining address for our full node
@@ -221,10 +74,10 @@ class NodeConfig {
     }
 
     // Startup nodes for bob and carol using a neutrino backend
-    const bob = new NodeConfig({ name: 'bob', rpc: 10002, neutrino: true, p2p: 19736 })
+    const bob = new NodeConfig({ name: 'bob', rpc: 10002, neutrino: true, p2p: 19736, network: env.NETWORK })
     await bob.startNode()
 
-    const carol = new NodeConfig({ name: 'carol', rpc: 10003, neutrino: true, p2p: 19737 })
+    const carol = new NodeConfig({ name: 'carol', rpc: 10003, neutrino: true, p2p: 19737, network: env.NETWORK })
     await carol.startNode()
 
     // Fund bob and carol from alice's wallet
@@ -299,7 +152,8 @@ class NodeConfig {
       console.log('Channels all opened successfully')
     }
 
-    console.log('Your network is ready to go! Gathering network information...\n')
+
+    console.log('\nYour network is ready to go! Gathering network information...\n')
     
     blockchainInfo = await getBlockchainInfo()
     
@@ -318,47 +172,45 @@ class NodeConfig {
       bob.channelBalance(), 
       carol.channelBalance()]
     )
-    console.log('************************** \n')
+    console.log('\n')
 
-    console.log('***** Network summary: ***** \n')
-    console.log('Blockchain:')
+    colorLog('***** Network summary ***** \n', 'cyan')
+    console.log('Blockchain')
     console.log('Height:', blockchainInfo.blocks)
     console.log('Network:', blockchainInfo.chain)
 
     console.log('\n')
+    const nodes = [alice, bob, carol]
 
-    console.log('**ALICE**')
-    console.log('Wallet Balance:', aliceBalance.confirmed_balance)
-    console.log('Channel Balance:', aliceLnBalance.balance)
-    console.log('Pubkey: ', alice.identityPubkey)
-    console.log('RPC Port:', alice.rpcPort)
-    console.log('Command Prefix:', alice.lncli)
+    alice.balance = aliceBalance.confirmed_balance
+    alice.lnBalance = aliceLnBalance.balance
+    bob.balance = bobBalance.confirmed_balance
+    bob.lnBalance = bobLnBalance.balance
+    carol.balance = carolBalance.confirmed_balance
+    carol.lnBalance = carolLnBalance.balance
+
+    for (let node of nodes) {
+      colorLog(`**${node.name.toUpperCase()}**`, 'cyan')
+      console.log('Wallet Balance:', node.balance)
+      console.log('Channel Balance:', node.lnBalance)
+      console.log(`Identity: ${node.identityPubkey}@${node.name}:${node.p2pPort}`)
+      console.log('RPC Port:', node.rpcPort)
+      console.log(`Command Prefix:`, colorize(node.lncli, 'bgYellow'))
+      
+      console.log('\n')
+    }
     
-    console.log('\n')
+    colorLog('********************************', 'magenta')
 
-    console.log('**BOB**')
-    console.log('Wallet Balance:', bobBalance.confirmed_balance)
-    console.log('Channel Balance:', bobLnBalance.balance)
-    console.log('Pubkey: ', bob.identityPubkey)
-    console.log('RPC Port:', bob.rpcPort)
-    console.log('Command Prefix:', bob.lncli)
-
-    console.log('\n')
-
-    console.log('**CAROL**')
-    console.log('Wallet Balance:', carolBalance.confirmed_balance)
-    console.log('Channel Balance:', carolLnBalance.balance)
-    console.log('Pubkey: ', carol.identityPubkey)
-    console.log('RPC Port:', carol.rpcPort)
-    console.log('Command Prefix:', carol.lncli)
-    
-    console.log('************************** \n')
-    
     console.log(
       'To interact with any of your nodes, simply copy the Command Prefix for the node you\'d like to run a command against and \
 paste it into your terminal followed by the lncli command you\'d like to run.', 
       `Make sure to run from the current directory (${process.cwd()})`
     )
+    console.log(`For example, to get info about the ${carol.name} node, simply run:\n`)
+    colorLog(`${carol.lncli} getinfo`, 'bgYellow')
+
+    colorLog('********************************', 'magenta')
 
   } catch (e) {
     if (e.stderr) console.error('Encountered error starting network:', e.stderr)
