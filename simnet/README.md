@@ -134,6 +134,6 @@ can give you a hints regarding this. For example, since the node containers take
 
 - [ ] Consider creating lnd.conf files for each lnd container rather than setting in command line
 - [ ] Create separate scripts for running the cli commands for each node (so the user doesn't have to copy and paste manually)
-- [ ] Script to remove containers
+- [x] Script to remove containers
 - [ ] Optimize build for cleaning up intermediate containers
-- [ ] Utility for extracting auth configs (tls.cert and macaroons)
+- [x] Utility for extracting credentials (tls.cert and macaroons)
