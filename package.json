@@ -1,0 +1,18 @@
+{
+  "name": "boltbox",
+  "version": "0.0.1",
+  "description": "We aim to create easy to deploy and manage lightning infrastructure for software developers",
+  "repository": "git@github.com:Tierion/boltbox.git",
+  "author": "Buck Perley <bucko.perley@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "lint": "eslint ./**/*.js --fix"
+  },
+  "devDependencies": {
+    "eslint": "6.5.1",
+    "eslint-config-prettier": "6.3.0",
+    "eslint-plugin-prettier": "3.1.1",
+    "prettier": "1.18.2"
+  }
+}

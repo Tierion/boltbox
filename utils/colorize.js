@@ -1,6 +1,6 @@
-/** 
+/**
  * @file Logging utilities for decorating stdout
- * Very simple helpers. If this gets more complex, we can consider 
+ * Very simple helpers. If this gets more complex, we can consider
  * having external dependencies.
  */
 
@@ -29,11 +29,9 @@ const colors = {
   bgBlue: '\x1b[44m',
   bgMagenta: '\x1b[45m',
   bgCyan: '\x1b[46m',
-  bgWhite: '\x1b[47m',
+  bgWhite: '\x1b[47m'
 }
 const reset = '\x1b[0m'
-
-
 
 function colorLog(string, color) {
   console.log(colorize(string, color))

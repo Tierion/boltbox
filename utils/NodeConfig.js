@@ -24,47 +24,45 @@ class NodeConfig {
     this.lncli = `docker-compose run --rm -e LNDDIR=${this.lnddir} -e RPCSERVER="${name}:${rpc}" -e NETWORK=${network} lncli`
     this.env = {
       NETWORK: network,
-      COMPOSE_INTERACTIVE_NO_CLI: true, 
+      COMPOSE_INTERACTIVE_NO_CLI: true,
       UID: process.env.UID || '',
       GROUPS: process.env.GID || '',
-      TLSEXTRADOMAIN: this.name, // adds docker host to be added to tls cert
-     }
+      TLSEXTRADOMAIN: this.name // adds docker host to be added to tls cert
+    }
 
-     if (neutrino) {
-       assert(typeof neutrino === 'boolean', 'Must pass a boolean for neutrino option')
-       this.neutrino = neutrino
-     }
+    if (neutrino) {
+      assert(typeof neutrino === 'boolean', 'Must pass a boolean for neutrino option')
+      this.neutrino = neutrino
+    }
 
-     if (backend) {
-       assert(typeof backend === 'string', 'Must pass a string to use as backend connetion information')
-       this.backend = backend
-     } else if (neutrino && network === 'simnet') {
-       this.backend = 'btcd:18555'
-     } else if (neutrino && network === 'testnet') {
-       this.backend = 'faucet.lightning.community:18333' 
-     }
+    if (backend) {
+      assert(typeof backend === 'string', 'Must pass a string to use as backend connetion information')
+      this.backend = backend
+    } else if (neutrino && network === 'simnet') {
+      this.backend = 'btcd:18555'
+    } else if (neutrino && network === 'testnet') {
+      this.backend = 'faucet.lightning.community:18333'
+    }
 
-     this.verbose = false
-     if (verbose) {
-       assert(typeof verbose === 'boolean', 'Expected boolean value for verbose option.')
-       this.verbose = verbose
-     }
-
+    this.verbose = false
+    if (verbose) {
+      assert(typeof verbose === 'boolean', 'Expected boolean value for verbose option.')
+      this.verbose = verbose
+    }
   }
 
   async startNode() {
-    let startCmd = 
-    `docker-compose run -d \
+    let startCmd = `docker-compose run -d \
     -e LNDDIR='${this.lnddir}' \
     -e RPCLISTEN=${this.rpcPort} \
     -e NOSEEDBACKUP='true'\
     -e TLSEXTRADOMAIN='${this.name}'
     -e LISTEN='${this.p2pPort}'`
-    
+
     if (this.neutrino) {
       startCmd = `${startCmd} -e NEUTRINO=${this.backend} -e BACKEND=neutrino`
     }
-    
+
     startCmd = `${startCmd} \
     -p ${this.rpcPort}:${this.rpcPort} \
     -p ${this.p2pPort}:${this.p2pPort} \
@@ -75,31 +73,32 @@ class NodeConfig {
     try {
       await exec(startCmd, { env: this.env })
     } catch (e) {
-       if (e.message.match(/Cannot create container for service lnd_btc: Conflict/g))
+      if (e.message.match(/Cannot create container for service lnd_btc: Conflict/g))
         console.warn(`Container for ${this.name} already exists. Skipping startup.`)
-       else 
-         throw e
+      else throw e
     }
 
     console.log(`Testing connection with ${this.name}...`)
-    
-    const { identity_pubkey } = await this.getInfo()
-    
-    this.identityPubkey = identity_pubkey
+
+    const { identity_pubkey: identityPubkey } = await this.getInfo()
+
+    this.identityPubkey = identityPubkey
 
     console.log(`${this.name.toUpperCase()} pubkey: ${this.identityPubkey}\n`)
     return
   }
 
   async exec(cmd) {
-    if (typeof cmd !== 'string')
-      throw new Error('must pass a string for the list of commands to run w/ lncli')
+    if (typeof cmd !== 'string') throw new Error('must pass a string for the list of commands to run w/ lncli')
 
-    let counter = 1, connection = false, tries = 5, error
+    let counter = 1,
+      connection = false,
+      tries = 5,
+      error
     // only want to return when the node is reachable
     while (!connection && counter < tries) {
       try {
-        let { stdout, stderr} = await exec(`${this.lncli} ${cmd}`, { env: this.env })
+        let { stdout, stderr } = await exec(`${this.lncli} ${cmd}`, { env: this.env })
         if (stdout && stdout.length) {
           connection = true
           return JSON.parse(stdout)
@@ -109,10 +108,10 @@ class NodeConfig {
           throw new Error('No response from container.')
         }
       } catch (e) {
-        // update the error each time one is thrown. We will throw the last one 
+        // update the error each time one is thrown. We will throw the last one
         // after the loop has run past the counter
         error = `Problem executing command for ${this.name}: ${cmd} \nError: ${e.message}`
-        if (this.verbose && counter < tries - 1) { 
+        if (this.verbose && counter < tries - 1) {
           console.error(error)
           console.error('Trying again...\n')
         }
@@ -151,7 +150,7 @@ class NodeConfig {
   async listPeers() {
     const peers = await this.exec('listpeers')
     if (!peers) return this.listPeers()
-    return peers.peers 
+    return peers.peers
   }
 
   async listChannels() {
@@ -160,7 +159,7 @@ class NodeConfig {
     return channels.channels
   }
 
-  async openChannel(nodeOrIdentity, local, push=0) {
+  async openChannel(nodeOrIdentity, local, push = 0) {
     let nodeKey = nodeOrIdentity.identityPubkey || nodeOrIdentity
     assert(typeof nodeKey === 'string' && nodeKey.length, 'Expected either a NodeConfig or an identity pubkey string')
     assert(typeof local === 'number', 'Expected an amount of satoshis to open the channel with ')
