@@ -35,7 +35,7 @@ async function getFileBase64(node, filepath) {
 // loop through each node and get base64 of tls.cert and admin.macaroon files
 // write the result to a local file
 async function generateCredentials(...nodes) {
-  let configTxt = ''
+  const credentials = {}
   for (let node of nodes) {
     console.log(`Extracting credentials for ${node.name} on ${node.network} network...`)
     assert(node instanceof NodeConfig, 'Expected a NodeConfig to generate credentials from')
@@ -43,14 +43,13 @@ async function generateCredentials(...nodes) {
     let cert = await getFileBase64(node, 'tls.cert')
     let macaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/admin.macaroon`)
 
-    configTxt = `${configTxt}${node.name.toUpperCase()}_CERT=${cert}\n`
-    configTxt = `${configTxt}\n${node.name.toUpperCase()}_MACAROON=${macaroon}\n`
+    credentials[node.name] = { cert, macaroon }
   }
 
-  const credentialsFile = path.join(process.cwd(), 'creds.env')
+  const credentialsFile = path.join(process.cwd(), 'credentials.env.json')
   
-  fs.writeFileSync(credentialsFile, configTxt)
-  console.log('Credentials written to file:', credentialsFile)
+  fs.writeFileSync(credentialsFile, JSON.stringify(credentials, null, 2))
+  colorLog(colorize(`Credentials written to file ${credentialsFile}`, 'bright'), 'cyan')
 }
 
 (async function() {
@@ -192,7 +191,7 @@ async function generateCredentials(...nodes) {
       console.log('Channels all opened successfully')
     }
 
-    colorLog(colorize('\nExporting auth credentials to local file...\n', 'magenta'), 'bright')
+    colorLog(colorize('\nExporting auth credentials to local file in base64 encoding...\n', 'magenta'), 'bright')
 
     await generateCredentials(alice, bob, carol)
 
