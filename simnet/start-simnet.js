@@ -101,7 +101,7 @@ async function generateCredentials(...nodes) {
       console.log('Mining 400 blocks...')
       await mineBlocks(400)
       let balance = await alice.getBalance()
-      console.log(`Alice's balance: ${balance.confirmed_balance}`)
+      console.log(`Alice's balance: ${balance.confirmed_balance}\n`)
     }
    
     // Startup nodes for bob and carol using a neutrino backend
@@ -141,9 +141,9 @@ async function generateCredentials(...nodes) {
       console.log('\n')
       colorLog(colorize('Balances (satoshis)', 'bright'), 'blue')
       
-      console.log('Alice: ', colorize(aliceBalance.confirmed_balance, 'bgGreen'))
-      console.log('Bob:   ', colorize(bobBalance.confirmed_balance, 'bgGreen'))
-      console.log('Carol: ', colorize(carolBalance.confirmed_balance, 'bgGreen'))
+      console.log('Alice: ', aliceBalance.confirmed_balance)
+      console.log('Bob:   ', bobBalance.confirmed_balance)
+      console.log('Carol: ', carolBalance.confirmed_balance)
       console.log('\n')
     }
 
@@ -237,7 +237,7 @@ async function generateCredentials(...nodes) {
       console.log('Channel Balance:', node.lnBalance)
       console.log(`Identity: ${node.identityPubkey}@${node.name}:${node.p2pPort}`)
       console.log('RPC Port:', node.rpcPort)
-      console.log(`Command Prefix:`, colorize(node.lncli, 'bgYellow'))
+      console.log(`Command Prefix:`, colorize(colorize(node.lncli, 'bgYellow'), 'black'))
       
       console.log('\n')
     }
@@ -250,7 +250,7 @@ paste it into your terminal followed by the lncli command you\'d like to run.',
       `Make sure to run from the current directory (${process.cwd()})`
     )
     console.log(`For example, to get info about the ${carol.name} node, simply run:\n`)
-    colorLog(`${carol.lncli} getinfo`, 'bgYellow')
+    colorLog(colorize(`${carol.lncli} getinfo`, 'black'), 'bgYellow')
 
     colorLog('********************************', 'magenta')
 
