@@ -25,6 +25,8 @@ class NodeConfig {
     this.env = {
       NETWORK: network,
       COMPOSE_INTERACTIVE_NO_CLI: true, 
+      UID: process.env.UID || '',
+      GROUPS: process.env.GID || '',
       TLSEXTRADOMAIN: this.name, // adds docker host to be added to tls cert
      }
 
