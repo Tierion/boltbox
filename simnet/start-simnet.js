@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 const { promisify } = require('util')
+const fs = require('fs')
+const path = require('path')
 const assert = require('assert')
 const exec = promisify(require('child_process').exec)
 
@@ -22,8 +24,36 @@ async function getBlockchainInfo(){
   return JSON.parse(blockchainInfo)
 }
 
+
+async function getFileBase64(node, filepath) {
+  assert(node instanceof NodeConfig, 'Requires a node in order to get the data')
+  assert(typeof filepath === 'string', 'Requires a filepath relative to the lnddir to cat the contents of')
+  filepath = path.join(node.lnddir, filepath)
+  return (await exec(`docker exec ${node.name} base64 ${filepath} | tr -d '\n'`)).stdout
+}
+
+// loop through each node and get base64 of tls.cert and admin.macaroon files
+// write the result to a local file
+async function generateCredentials(...nodes) {
+  const credentials = {}
+  for (let node of nodes) {
+    console.log(`Extracting credentials for ${node.name} on ${node.network} network...`)
+    assert(node instanceof NodeConfig, 'Expected a NodeConfig to generate credentials from')
+    
+    let cert = await getFileBase64(node, 'tls.cert')
+    let macaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/admin.macaroon`)
+
+    credentials[node.name] = { cert, macaroon }
+  }
+
+  const credentialsFile = path.join(process.cwd(), 'credentials.env.json')
+  
+  fs.writeFileSync(credentialsFile, JSON.stringify(credentials, null, 2))
+  colorLog(colorize(`Credentials written to file ${credentialsFile}`, 'bright'), 'cyan')
+}
+
 (async function() {
-  console.log('Building images...')
+  console.log('Building images...\n')
   await exec('docker-compose build')
 
   const alice = new NodeConfig({ name: 'alice', rpc: 10001, p2p: 19735, network: env.NETWORK })
@@ -71,7 +101,7 @@ async function getBlockchainInfo(){
       console.log('Mining 400 blocks...')
       await mineBlocks(400)
       let balance = await alice.getBalance()
-      console.log(`Alice's balance: ${balance.confirmed_balance}`)
+      console.log(`Alice's balance: ${balance.confirmed_balance}\n`)
     }
    
     // Startup nodes for bob and carol using a neutrino backend
@@ -83,14 +113,15 @@ async function getBlockchainInfo(){
     colorLog(colorize(`Starting ${carol.name}'s node...`, 'bright'), 'magenta')
     await carol.startNode()
 
-    // Fund bob and carol from alice's wallet
-    console.log('Funding bob and carol...')
+    const nodes = [alice, bob, carol]
 
+    // Fund bob and carol from alice's wallet
+    colorLog(colorize('Funding bob and carol...', 'magenta'), 'bright')
     // send from alice to bob
     var [aliceBalance, bobBalance, carolBalance] = await Promise.all([alice.getBalance(), bob.getBalance(), carol.getBalance()])
 
     if (bobBalance.confirmed_balance > 0 && carolBalance.confirmed_balance > 0) {
-      console.log('Bob and Carol are already funded')
+      console.log('Bob and Carol are already funded \n')
       chanBalance = bobBalance / 2
     } else {
       const bobAddr = await bob.getAddress()
@@ -110,14 +141,15 @@ async function getBlockchainInfo(){
       console.log('\n')
       colorLog(colorize('Balances (satoshis)', 'bright'), 'blue')
       
-      console.log('Alice: ', colorize(aliceBalance.confirmed_balance, 'bgGreen'))
-      console.log('Bob:   ', colorize(bobBalance.confirmed_balance, 'bgGreen'))
-      console.log('Carol: ', colorize(carolBalance.confirmed_balance, 'bgGreen'))
+      console.log('Alice: ', aliceBalance.confirmed_balance)
+      console.log('Bob:   ', bobBalance.confirmed_balance)
+      console.log('Carol: ', carolBalance.confirmed_balance)
       console.log('\n')
     }
 
     // Add peers and open channels: alice to bob, bob to carol, and carol to alice
-    console.log('Adding peers and opening channels between alice, bob, and carol') 
+    colorLog(colorize('Adding peers and opening channels between alice, bob, and carol', 'magenta'), 'bright')
+
     var [alicePeers, bobPeers, carolPeers] = await Promise.all([alice.listPeers(), bob.listPeers(), carol.listPeers()])
 
     if (alicePeers.length && bobPeers.length && carolPeers.length) {
@@ -159,6 +191,9 @@ async function getBlockchainInfo(){
       console.log('Channels all opened successfully')
     }
 
+    colorLog(colorize('\nExporting auth credentials to local file in base64 encoding...\n', 'magenta'), 'bright')
+
+    await generateCredentials(alice, bob, carol)
 
     console.log('\nYour network is ready to go! Gathering network information...\n')
     
@@ -188,7 +223,6 @@ async function getBlockchainInfo(){
     console.log('Command Prefix:', colorize(`docker-compose run -e NETWORK=simnet btcctl [BTCCTL ARGS]`, 'bgYellow'))
 
     console.log('\n')
-    const nodes = [alice, bob, carol]
 
     alice.balance = aliceBalance.confirmed_balance
     alice.lnBalance = aliceLnBalance.balance
@@ -203,7 +237,7 @@ async function getBlockchainInfo(){
       console.log('Channel Balance:', node.lnBalance)
       console.log(`Identity: ${node.identityPubkey}@${node.name}:${node.p2pPort}`)
       console.log('RPC Port:', node.rpcPort)
-      console.log(`Command Prefix:`, colorize(node.lncli, 'bgYellow'))
+      console.log(`Command Prefix:`, colorize(colorize(node.lncli, 'bgYellow'), 'black'))
       
       console.log('\n')
     }
@@ -216,7 +250,7 @@ paste it into your terminal followed by the lncli command you\'d like to run.',
       `Make sure to run from the current directory (${process.cwd()})`
     )
     console.log(`For example, to get info about the ${carol.name} node, simply run:\n`)
-    colorLog(`${carol.lncli} getinfo`, 'bgYellow')
+    colorLog(colorize(`${carol.lncli} getinfo`, 'black'), 'bgYellow')
 
     colorLog('********************************', 'magenta')
 

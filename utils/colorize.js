@@ -36,11 +36,6 @@ const reset = '\x1b[0m'
 
 
 function colorLog(string, color) {
-  if (typeof string !== 'string') throw new Error('Must pass a string to colorize')
-  if (typeof color !== 'string') throw new Error('Must pass a color to change string to')
-
-  if (!colors[color]) throw new Error(`Don't recognize color ${color}`)
-
   console.log(colorize(string, color))
 }
 
