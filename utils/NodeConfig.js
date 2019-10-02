@@ -21,7 +21,7 @@ class NodeConfig {
     this.p2pPort = p2p
     this.lnddir = lnddir || `/lnd-data/${name}`
     this.network = network
-    this.lncli = `docker-compose run -e LNDDIR=${this.lnddir} -e RPCSERVER="${name}:${rpc}" -e NETWORK=${network} lncli`
+    this.lncli = `docker-compose run --rm -e LNDDIR=${this.lnddir} -e RPCSERVER="${name}:${rpc}" -e NETWORK=${network} lncli`
     this.env = {
       NETWORK: network,
       COMPOSE_INTERACTIVE_NO_CLI: true, 
