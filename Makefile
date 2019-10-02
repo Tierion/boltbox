@@ -32,3 +32,8 @@ burn:
 .PHONY : simnet
 simnet:
 	@cd ./simnet && node start-simnet.js
+
+## simnet-verbose       : Spin up a simnet network with verbose logging of errors
+.PHONY : simnet-verbose
+simnet-verbose:
+	@cd ./simnet && node start-simnet.js --verbose

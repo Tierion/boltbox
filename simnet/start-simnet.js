@@ -53,10 +53,20 @@ async function generateCredentials(...nodes) {
 }
 
 (async function() {
+  const opts = process.argv.slice(2)
+  const verbose = opts.includes('--verbose') || opts.includes('-v')
+
   console.log('Building images...\n')
   await exec('docker-compose build')
 
-  const alice = new NodeConfig({ name: 'alice', rpc: 10001, p2p: 19735, network: env.NETWORK })
+  const alice = new NodeConfig({ 
+    name: 'alice', 
+    rpc: 10001, 
+    p2p: 19735, 
+    network: env.NETWORK, 
+    verbose 
+  })
+  
   colorLog(colorize(`Starting ${alice.name}'s node...`, 'bright'), 'magenta')
   await alice.startNode()
 
@@ -105,11 +115,27 @@ async function generateCredentials(...nodes) {
     }
    
     // Startup nodes for bob and carol using a neutrino backend
-    const bob = new NodeConfig({ name: 'bob', rpc: 10002, neutrino: true, p2p: 19736, network: env.NETWORK })
+    const bob = new NodeConfig({ 
+      name: 'bob', 
+      rpc: 10002, 
+      neutrino: true, 
+      p2p: 19736, 
+      network: env.NETWORK, 
+      verbose 
+    })
+
     colorLog(colorize(`Starting ${bob.name}'s node...`, 'bright'), 'magenta')
     await bob.startNode()
 
-    const carol = new NodeConfig({ name: 'carol', rpc: 10003, neutrino: true, p2p: 19737, network: env.NETWORK })
+    const carol = new NodeConfig({ 
+      name: 'carol', 
+      rpc: 10003, 
+      neutrino: true, 
+      p2p: 19737, 
+      network: env.NETWORK, 
+      verbose 
+    })
+
     colorLog(colorize(`Starting ${carol.name}'s node...`, 'bright'), 'magenta')
     await carol.startNode()
 
@@ -191,7 +217,7 @@ async function generateCredentials(...nodes) {
       console.log('Channels all opened successfully')
     }
 
-    colorLog(colorize('\nExporting auth credentials to local file in base64 encoding...\n', 'magenta'), 'bright')
+    colorLog(colorize('\nExporting auth credentials to local file in base64 encoding...', 'magenta'), 'bright')
 
     await generateCredentials(alice, bob, carol)
 

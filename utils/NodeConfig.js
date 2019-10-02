@@ -11,7 +11,7 @@ const exec = promisify(require('child_process').exec)
  * @params {Number} p2p - p2p listening port
  */
 class NodeConfig {
-  constructor({ name, rpc, neutrino, p2p, network = 'mainnet', lnddir, backend }) {
+  constructor({ name, rpc, neutrino, p2p, network = 'mainnet', lnddir, backend, verbose }) {
     assert(typeof rpc === 'number', 'NodeConfig requires a custom rpc port to create a node')
     assert(typeof p2p === 'number', 'NodeConfig requires a custom p2p listening port to create a node')
     assert(typeof name === 'string', 'NodeConfig requires a string to set the name of the node to')
@@ -42,6 +42,12 @@ class NodeConfig {
        this.backend = 'btcd:18555'
      } else if (neutrino && network === 'testnet') {
        this.backend = 'faucet.lightning.community:18333' 
+     }
+
+     this.verbose = false
+     if (verbose) {
+       assert(typeof verbose === 'boolean', 'Expected boolean value for verbose option.')
+       this.verbose = verbose
      }
 
   }
@@ -76,20 +82,10 @@ class NodeConfig {
     }
 
     console.log(`Testing connection with ${this.name}...`)
-    let counter = 1, connection = false
-    // only want to return when the node is reachable
-    while (!connection && counter < 10) {
-      try {
-        const info = await this.getInfo()
-        if (info && info.version) {
-          this.setIdentity(info.identity_pubkey)
-          connection = true
-        }
-        counter++
-      } catch (e) {}
-      counter++
-    }
-    if (!connection) throw new Error('Could not establish connection with node')
+    
+    const { identity_pubkey } = await this.getInfo()
+    
+    this.identityPubkey = identity_pubkey
 
     console.log(`${this.name.toUpperCase()} pubkey: ${this.identityPubkey}\n`)
     return
@@ -99,26 +95,32 @@ class NodeConfig {
     if (typeof cmd !== 'string')
       throw new Error('must pass a string for the list of commands to run w/ lncli')
 
-    try {
-      let { stdout, stderr} = await exec(`${this.lncli} ${cmd}`, { env: this.env })
-      if (stdout && stdout.length)
-        return JSON.parse(stdout)
-      else if (stderr && stderr.length) {
-        console.error('Problem connecting to node:', stderr)
-      } else {
-        throw new Error('No response from container.')
+    let counter = 1, connection = false, tries = 5, error
+    // only want to return when the node is reachable
+    while (!connection && counter < tries) {
+      try {
+        let { stdout, stderr} = await exec(`${this.lncli} ${cmd}`, { env: this.env })
+        if (stdout && stdout.length) {
+          connection = true
+          return JSON.parse(stdout)
+        } else if (stderr && stderr.length) {
+          throw new Error('Problem connecting to node:', stderr)
+        } else {
+          throw new Error('No response from container.')
+        }
+      } catch (e) {
+        // update the error each time one is thrown. We will throw the last one 
+        // after the loop has run past the counter
+        error = `Problem executing command for ${this.name}: ${cmd} \nError: ${e.message}`
+        if (this.verbose && counter < tries - 1) { 
+          console.error(error)
+          console.error('Trying again...\n')
+        }
       }
-    } catch (e) {
-      // NOTE: This will just run an infinite loop in case there was just an intermediate
-      // failure w/ a connection. May need to SIGINT if the problem is not intermittent.
-      console.error(`Problem executing command for ${this.name}: ${cmd}`, e.message)
-      console.log('Trying again...\n')
-      return this.exec(cmd)
+      counter++
     }
-  }
 
-  async setIdentity(pubkey) {
-    this.identityPubkey = pubkey
+    if (!connection) throw new Error(error)
   }
 
   getInfo() {
