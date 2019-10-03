@@ -264,7 +264,10 @@ async function generateCredentials(...nodes) {
     colorLog(colorize('**BLOCKCHAIN**', 'bright'), 'cyan')
     console.log('Height:', blockchainInfo.blocks)
     console.log('Network:', blockchainInfo.chain)
-    console.log('Command Prefix:', colorize(`docker-compose run -e NETWORK=simnet btcctl [BTCCTL ARGS]`, 'bgYellow'))
+    console.log(
+      `Command Prefix:`,
+      colorize(colorize(`docker-compose run -e NETWORK=simnet btcctl [BTCCTL ARGS]`, 'bgYellow'), 'black')
+    )
 
     console.log('\n')
 
