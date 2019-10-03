@@ -88,6 +88,10 @@ if [[ -n $TLSEXTRADOMAIN ]]; then
   PARAMS="$PARAMS --tlsextradomain=$TLSEXTRADOMAIN"
 fi
 
+if [[ -n $PUBLICIP ]]; then
+  PARAMS="$PARAMS --tlsextraip=$PUBLICIP"
+fi
+
 if [[ -n $NOSEEDBACKUP ]]; then
   PARAMS="$PARAMS --noseedbackup"
 fi
