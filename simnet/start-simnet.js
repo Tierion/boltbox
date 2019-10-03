@@ -260,8 +260,8 @@ async function generateCredentials(...nodes) {
     ])
     console.log('\n')
 
-    colorLog('***** Network summary ***** \n', 'cyan')
-    colorLog(colorize('**BLOCKCHAIN**', 'bright'), 'blue')
+    colorLog(colorize('***** Network Summary ***** \n', 'bright'), 'magenta')
+    colorLog(colorize('**BLOCKCHAIN**', 'bright'), 'cyan')
     console.log('Height:', blockchainInfo.blocks)
     console.log('Network:', blockchainInfo.chain)
     console.log('Command Prefix:', colorize(`docker-compose run -e NETWORK=simnet btcctl [BTCCTL ARGS]`, 'bgYellow'))
@@ -276,7 +276,7 @@ async function generateCredentials(...nodes) {
     carol.lnBalance = carolLnBalance.balance
 
     for (let node of nodes) {
-      colorLog(`**${node.name.toUpperCase()}**`, 'cyan')
+      colorLog(colorize(`**${node.name.toUpperCase()}**`, 'bright'), 'cyan')
       console.log('Wallet Balance:', node.balance)
       console.log('Channel Balance:', node.lnBalance)
       console.log(`Identity: ${node.identityPubkey}@${node.name}:${node.p2pPort}`)
