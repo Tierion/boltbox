@@ -98,6 +98,11 @@ fi
 
 if [[ -n $NEUTRINO ]]; then
   PARAMS="$PARAMS --neutrino.connect=$NEUTRINO"
+  if [[ $NETWORK == "testnet" ]]; then
+    PARAMS="$PARAMS --neutrino.connect=btcd-testnet.lightning.computer"
+    PARAMS="$PARAMS --neutrino.connect=testnet1-btcd.zaphq.io"
+    PARAMS="$PARAMS --neutrino.connect=testnet2-btcd.zaphq.io"
+  fi
 fi
 
 # Add user parameters to command.
