@@ -1,0 +1,67 @@
+version: '3.7'
+services:
+  lndmon:
+    image: lndmon-boltbox
+    container_name: lndmon
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '9092:9092'
+    environment:
+      - PROMETHEUS_LISTEN
+      - LND_DIR
+      - NETWORK
+      - LND_HOST
+      - LND_RPC_PORT
+      - MACAROON_DIR
+      - TLS_CERT_PATH
+    volumes:
+      - lndmon-grafana:/grafana
+    entrypoint: ['./start-lndmon.sh']
+
+  prometheus:
+    image: prom/prometheus:v2.10.0
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-storage:/prometheus
+    # Reasoning behind Prometheus command query flags:
+    # --query.max-samples: each Prometheus data sample is 16 bytes.
+    #                      16B * 31250000 = 1/2 GB.
+    # --query.max-concurrency: the max # of concurrent queries (default is 20).
+    # these parameters are intended to limit the amount of memory Prometheus
+    # uses for its queries to ~1GB, because it's sensitive to OOMs.
+    command: '--config.file=/etc/prometheus/prometheus.yml --query.max-samples=31250000 --query.max-concurrency=2'
+    ports:
+      - '9090:9090'
+    restart: always
+    depends_on:
+      - lndmon
+
+  grafana:
+    image: grafana/grafana:6.2.0
+    ports:
+      - '3000:3000'
+    volumes:
+      - lndmon-grafana:/etc/grafana/provisioning/
+      - grafana-storage:/var/lib/grafana
+
+  post_start:
+    container_name: post_start
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: graf-dash
+    depends_on:
+      - grafana
+    entrypoint: ['set_default_graf_dash.sh']
+
+volumes:
+  grafana-storage:
+  # a volume that has the grafana data (provisioning and ini) from the lndmon image
+  lndmon-grafana:
+  prometheus-storage:
+  # lnd volume for maintaining lnd wallet persistence
+  # during container recreation.
+  lnd:
+    driver: local
