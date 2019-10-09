@@ -40,9 +40,12 @@ async function generateCredentials(...nodes) {
     assert(node instanceof NodeConfig, 'Expected a NodeConfig to generate credentials from')
 
     let cert = await getFileBase64(node, 'tls.cert')
-    let macaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/admin.macaroon`)
+    let adminMacaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/admin.macaroon`)
+    let readonlyMacaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/readonly.macaroon`)
+    let invoicesMacaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/invoices.macaroon`)
+    let invoiceMacaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/invoice.macaroon`)
 
-    credentials[node.name] = { cert, macaroon }
+    credentials[node.name] = { cert, adminMacaroon, readonlyMacaroon, invoicesMacaroon, invoiceMacaroon }
   }
 
   const credentialsFile = path.join(process.cwd(), 'credentials.env.json')
