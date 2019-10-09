@@ -16,10 +16,11 @@ RUN git clone https://github.com/tierion/lnd /go/src/github.com/lightningnetwork
 RUN cd /go/src/github.com/lightningnetwork/lnd && git checkout rpc-additions
 RUN cd /go/src/github.com/lightningnetwork/lnd && make
 RUN cd /go/src/github.com/lightningnetwork/lnd && \
-make install tags="dev autopilotrpc chainrpc invoicesrpc routerrpc signrpc signerrpc walletrpc watchtowerrpc"
+make install tags="dev autopilotrpc chainrpc invoicesrpc routerrpc signrpc signerrpc walletrpc watchtowerrpc monitoring"
 
 # Start a new, final image to reduce size.
 FROM builder as prod
+LABEL maintainer="Boltbox team <buck@tierion.com>"
 
 RUN cp /go/bin/lnd /bin/lnd
 RUN cp /go/bin/lncli /bin/lncli

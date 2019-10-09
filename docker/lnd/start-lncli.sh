@@ -41,18 +41,18 @@ set_default() {
 # Set default variables if needed.
 RPCSERVER=$(set_default "$RPCSERVER" "lnd:10009")
 NETWORK=$(set_default "$NETWORK" "mainnet")
-LNDDIR=$(set_default "$LNDDIR" "/lnd-data")
-MACAROONPATH=$(set_default "$MACAROONPATH" "$LNDDIR/data/chain/bitcoin/$NETWORK/admin.macaroon")
-TLSCERTPATH=$(set_default "$TLSCERTPATH" "$LNDDIR/tls.cert")
+LND_DIR=$(set_default "$LND_DIR" "/lnd-data")
+MACAROON_PATH=$(set_default "$MACAROON_PATH" "$LND_DIR/data/chain/bitcoin/$NETWORK/admin.macaroon")
+TLS_CERT_PATH=$(set_default "$TLS_CERT_PATH" "$LND_DIR/tls.cert")
 
 PARAMS=""
-echo $MACAROONPATH
+echo $MACAROON_PATH
 PARAMS=$(echo $PARAMS \
     "--network=$NETWORK" \
     "--rpcserver=$RPCSERVER" \
-    "--lnddir=$LNDDIR" \
-    "--macaroonpath=$MACAROONPATH" \
-    "--tlscertpath=$TLSCERTPATH" \
+    "--lnddir=$LND_DIR" \
+    "--macaroonpath=$MACAROON_PATH" \
+    "--tlscertpath=$TLS_CERT_PATH" \
 )
 
 PARAMS="$PARAMS $@"

@@ -47,9 +47,10 @@ DEBUG=$(set_default "$DEBUG" "debug")
 NETWORK=$(set_default "$NETWORK" "simnet")
 CHAIN=$(set_default "$CHAIN" "bitcoin")
 BACKEND=$(set_default "$BACKEND" "btcd")
-LNDDIR=$(set_default "$LNDDIR" "/lnd-data")
+LND_DIR=$(set_default "$LND_DIR" "/root/.lnd")
 RESTLISTEN=$(set_default "$RESTLISTEN" "8080")
 RPCLISTEN=$(set_default "$RPCLISTEN" "10009")
+MONITORLISTEN=$(set_default "$MONITORLISTEN" "8989")
 CHAN_CONFS=$(set_default "$CHAN_CONFS" 3)
 
 if [[ -n $BACKEND && "$BACKEND" == "neutrino" ]]; then
@@ -61,10 +62,10 @@ if [[ "$CHAIN" == "litecoin" ]]; then
 fi
 
 PARAMS=$(echo $PARAMS \
-    "--lnddir=$LNDDIR" \
+    "--lnddir=$LND_DIR" \
     "--debuglevel=$DEBUG" \
-    "--logdir=$LNDDIR/logs" \
-    "--datadir=$LNDDIR/data" \
+    "--logdir=$LND_DIR/logs" \
+    "--datadir=$LND_DIR/data" \
     "--$CHAIN.active" \
     "--$CHAIN.$NETWORK" \
     "--$CHAIN.node=$BACKEND" \
@@ -98,6 +99,10 @@ fi
 
 if [[ -n $NEUTRINO ]]; then
   PARAMS="$PARAMS --neutrino.connect=$NEUTRINO"
+fi
+
+if [[ -n $MONITORING ]]; then
+  PARAMS="$PARAMS --prometheus.enable --prometheus.listen=0.0.0.0:$MONITORLISTEN"
 fi
 
 # Add user parameters to command.

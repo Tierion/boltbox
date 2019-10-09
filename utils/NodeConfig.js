@@ -21,7 +21,7 @@ class NodeConfig {
     this.p2pPort = p2p
     this.lnddir = lnddir || `/lnd-data/${name}`
     this.network = network
-    this.lncli = `docker-compose run --rm -e LNDDIR=${this.lnddir} -e RPCSERVER="${name}:${rpc}" -e NETWORK=${network} lncli`
+    this.lncli = `docker-compose run --rm -e LND_DIR=${this.lnddir} -e RPCSERVER="${name}:${rpc}" -e NETWORK=${network} lncli`
     this.env = {
       NETWORK: network,
       COMPOSE_INTERACTIVE_NO_CLI: true,
@@ -53,7 +53,7 @@ class NodeConfig {
 
   async startNode() {
     let startCmd = `docker-compose run -d \
-    -e LNDDIR='${this.lnddir}' \
+    -e LND_DIR='${this.lnddir}' \
     -e RPCLISTEN=${this.rpcPort} \
     -e NOSEEDBACKUP='true'\
     -e TLSEXTRADOMAIN='${this.name}'
@@ -70,6 +70,7 @@ class NodeConfig {
 
     startCmd = startCmd.replace(/\s\s+/g, ' ')
 
+    if (this.verbose) console.log(`Starting ${this.name} node: ${startCmd}`)
     try {
       await exec(startCmd, { env: this.env })
     } catch (e) {
