@@ -40,17 +40,18 @@ set_default() {
 
 # Set default variables if needed.
 PROMETHEUSLISTEN=$(set_default "$PROMETHEUSLISTEN" "9092")
-NETWORK=$(set_default "$NETWORK" "simnet")
-LND_HOST=$(set_default "$LND_HOST" "lnd")
+LND_NETWORK=$(set_default "$NETWORK" "simnet")
+LND_HOSTNAME=$(set_default "$LND_HOSTNAME" "lnd")
 LND_RPC_PORT=$(set_default "$LND_RPC_PORT" "10009")
 LND_DIR=$(set_default "$LND_DIR" "/root/.lnd")
-MACAROON_DIR=$(set_default "$MACAROON_DIR" "$LND_DIR/data/chain/bitcoin/$NETWORK/")
+MACAROON_DIR=$(set_default "$MACAROON_DIR" "$LND_DIR/data/chain/bitcoin/$LND_NETWORK")
 TLS_CERT_PATH=$(set_default "$TLS_CERT_PATH" "$LND_DIR/tls.cert")
+LND_HOST=$(set_default "$LND_HOST" "${LND_HOSTNAME}:${LND_RPC_PORT}")
 
 PARAMS=$(echo $PARAMS \
     "--prometheus.listenaddr=0.0.0.0:$PROMETHEUSLISTEN" \
-    "--lnd.network=$NETWORK" \
-    "--lnd.host=$LND_HOST:$LND_RPC_PORT" \
+    "--lnd.network=$LND_NETWORK" \
+    "--lnd.host=$LND_HOST" \
     "--lnd.macaroondir=$MACAROON_DIR" \
     "--lnd.tlspath=$TLS_CERT_PATH"
 )

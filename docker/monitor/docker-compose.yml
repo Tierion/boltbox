@@ -13,6 +13,7 @@ services:
       - LND_DIR
       - NETWORK
       - LND_HOST
+      - LND_HOSTNAME
       - LND_RPC_PORT
       - MACAROON_DIR
       - TLS_CERT_PATH
