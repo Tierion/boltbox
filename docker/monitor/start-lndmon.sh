@@ -40,6 +40,12 @@ set_default() {
 
 # Set default variables if needed.
 PROMETHEUSLISTEN=$(set_default "$PROMETHEUSLISTEN" "9092")
+
+# MONITORLISTEN is actually used when starting lnd instance to expose
+# the appropriate port for prometheus to listen to. Need to set env var
+# for the prometheus.yml to have access
+MONITORLISTEN=$(set_default "$MONITORLISTEN" "8989")
+
 LND_NETWORK=$(set_default "$NETWORK" "simnet")
 LND_HOSTNAME=$(set_default "$LND_HOSTNAME" "lnd")
 LND_RPC_PORT=$(set_default "$LND_RPC_PORT" "10009")

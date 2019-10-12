@@ -41,7 +41,7 @@ set_default() {
 # Set default variables if needed.
 RPCSERVER=$(set_default "$RPCSERVER" "lnd:10009")
 NETWORK=$(set_default "$NETWORK" "mainnet")
-LND_DIR=$(set_default "$LND_DIR" "/lnd-data")
+LND_DIR=$(set_default "$LND_DIR" "/root/.lnd")
 MACAROON_PATH=$(set_default "$MACAROON_PATH" "$LND_DIR/data/chain/bitcoin/$NETWORK/admin.macaroon")
 TLS_CERT_PATH=$(set_default "$TLS_CERT_PATH" "$LND_DIR/tls.cert")
 

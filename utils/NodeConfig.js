@@ -56,7 +56,8 @@ class NodeConfig {
     -e LND_DIR='${this.lnddir}' \
     -e RPCLISTEN=${this.rpcPort} \
     -e NOSEEDBACKUP='true'\
-    -e TLSEXTRADOMAIN='${this.name}'
+    -e TLSEXTRADOMAIN='${this.name}' \
+    -e MONITORING='true'\
     -e LISTEN='${this.p2pPort}'`
 
     if (this.neutrino) {

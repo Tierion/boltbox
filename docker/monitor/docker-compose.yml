@@ -7,9 +7,9 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '9092:9092'
+      - 9092:9092
     environment:
-      - PROMETHEUS_LISTEN
+      - PROMETHEUSLISTEN
       - LND_DIR
       - NETWORK
       - LND_HOST
@@ -17,6 +17,7 @@ services:
       - LND_RPC_PORT
       - MACAROON_DIR
       - TLS_CERT_PATH
+      - LNDMON_HOST
     volumes:
       - lndmon-grafana:/grafana
     entrypoint: ['./start-lndmon.sh']
@@ -43,6 +44,8 @@ services:
     image: grafana/grafana:6.2.0
     ports:
       - '3000:3000'
+    depends_on:
+      - prometheus
     volumes:
       - lndmon-grafana:/etc/grafana/provisioning/
       - grafana-storage:/var/lib/grafana
