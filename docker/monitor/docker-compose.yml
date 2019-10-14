@@ -6,8 +6,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - 9092:9092
     environment:
       - PROMETHEUSLISTEN
       - LND_DIR
@@ -20,6 +18,8 @@ services:
       - LNDMON_HOST
     volumes:
       - lndmon-grafana:/grafana
+    ports:
+      - ${PROMETHEUSLISTEN?}:${PROMETHEUSLISTEN?}
     entrypoint: ['./start-lndmon.sh']
 
   prometheus:

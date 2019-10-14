@@ -123,6 +123,15 @@ local               simnet_shared
 These shared volumes are necessary for the RPC interface to be able to locate the necessary macaroons and tls certificates
 If you run the script a second time, it will check for existing volumes, including wallet balances, mined blocks, etc.
 
+## Monitoring
+
+#### LNDMON
+
+The script will spin up an lndmon instance to use for monitoring one of your nodes. Unfortunately, lndmon does not
+currently support multi-node monitoring solutions out of the box, so only monitoring for `bob` is enabled. lndmon will use shared volumes and a shared network in order to connect it to the
+simnet containers. In order to accomplish this with the monitor's separate `docker-compose.yml`,
+we leverage docker compose's support for [extending configurations](https://docs.docker.com/compose/extends/).
+
 ## Troubleshooting
 
 The best thing to try and do to troubleshoot any issues is make sure all associated containers

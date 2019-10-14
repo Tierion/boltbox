@@ -13,6 +13,8 @@ RUN apk add --no-cache --update alpine-sdk \
     gcc
 
 ENV GO111MODULE on
+
+# git pull latest version of lndmon repo to build
 RUN git clone https://github.com/lightninglabs/lndmon.git /go/src/github.com/lightninglabs/lndmon
 RUN cd /go/src/github.com/lightninglabs/lndmon/cmd/lndmon && go build
 

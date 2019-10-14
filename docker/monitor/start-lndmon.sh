@@ -46,7 +46,7 @@ PROMETHEUSLISTEN=$(set_default "$PROMETHEUSLISTEN" "9092")
 # for the prometheus.yml to have access
 MONITORLISTEN=$(set_default "$MONITORLISTEN" "8989")
 
-LND_NETWORK=$(set_default "$NETWORK" "simnet")
+LND_NETWORK=$(set_default "$NETWORK" "main")
 LND_HOSTNAME=$(set_default "$LND_HOSTNAME" "lnd")
 LND_RPC_PORT=$(set_default "$LND_RPC_PORT" "10009")
 LND_DIR=$(set_default "$LND_DIR" "/root/.lnd")
