@@ -3,6 +3,8 @@
 
 FROM golang:1.12-alpine as builder
 
+LABEL maintainer="Boltbox team <buck@tierion.com>"
+
 # Install build dependencies such as git and glide.
 RUN apk add --no-cache git gcc musl-dev
 

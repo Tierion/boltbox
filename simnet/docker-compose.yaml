@@ -16,6 +16,8 @@ services:
         - RPCUSER
         - RPCPASS
         - NETWORK
+      networks:
+        - boltbox
 
     btcd:
       <<: *btc
@@ -67,6 +69,8 @@ services:
           - shared:/rpc
           - lnd:/lnd-data
       entrypoint: ["./start-lnd.sh"]
+      networks:
+        - boltbox
 
     lnd_btc: &lnd_btc
       <<: *lnd
@@ -79,6 +83,10 @@ services:
       container_name: lncli
       entrypoint: ["./start-lncli.sh"]
       stdin_open: true
+
+networks:
+  boltbox:
+    name: boltbox-simnet
 
 volumes:
   # shared volume is need to store the btcd rpc certificates and use it within
@@ -95,3 +103,4 @@ volumes:
   # during container recreation.
   lnd:
     driver: local
+    name: lnd-data-simnet

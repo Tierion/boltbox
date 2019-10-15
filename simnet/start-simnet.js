@@ -6,6 +6,7 @@ const assert = require('assert')
 const exec = promisify(require('child_process').exec)
 
 const { NodeConfig, colorLog, colorize } = require('../utils')
+const { startMonitors } = require('./start-monitors')
 
 const NETWORK = 'simnet'
 // env vars to use for all docker calls
@@ -40,12 +41,15 @@ async function generateCredentials(...nodes) {
     assert(node instanceof NodeConfig, 'Expected a NodeConfig to generate credentials from')
 
     let cert = await getFileBase64(node, 'tls.cert')
-    let macaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/admin.macaroon`)
+    let adminMacaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/admin.macaroon`)
+    let readonlyMacaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/readonly.macaroon`)
+    let invoicesMacaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/invoices.macaroon`)
+    let invoiceMacaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/invoice.macaroon`)
 
-    credentials[node.name] = { cert, macaroon }
+    credentials[node.name] = { cert, adminMacaroon, readonlyMacaroon, invoicesMacaroon, invoiceMacaroon }
   }
 
-  const credentialsFile = path.join(process.cwd(), 'credentials.env.json')
+  const credentialsFile = path.join(process.cwd(), 'credentials.json')
 
   fs.writeFileSync(credentialsFile, JSON.stringify(credentials, null, 2))
   colorLog(colorize(`Credentials written to file ${credentialsFile}`, 'bright'), 'cyan')
@@ -239,6 +243,10 @@ async function generateCredentials(...nodes) {
 
     await generateCredentials(alice, bob, carol)
 
+    console.log(`\nStarting LND Monitor for ${bob.name}...`)
+
+    await startMonitors(bob)
+
     console.log('\nYour network is ready to go! Gathering network information...\n')
 
     blockchainInfo = await getBlockchainInfo()
@@ -300,6 +308,14 @@ paste it into your terminal followed by the lncli command you'd like to run.",
     colorLog(colorize(`${carol.lncli} getinfo`, 'black'), 'bgYellow')
 
     colorLog('********************************', 'magenta')
+
+    console.log('\n')
+    colorLog(colorize('**DASHBOARDS**', 'bright'), 'magenta')
+    colorLog(colorize(`${bob.name.toUpperCase()} MONITOR`, 'bright'), 'cyan')
+    console.log('URL: http://localhost:3000')
+    console.log('username: admin')
+    console.log('pw: admin')
+    console.log('\n')
   } catch (e) {
     if (e.stderr) console.error('Encountered error starting network:', e.stderr)
     else console.error('Encountered error:', e)
