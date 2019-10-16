@@ -65,6 +65,10 @@ services:
         - NETWORK
         - CHAIN
         - DEBUG
+        - RPCLISTEN
+        - RESTLISTEN
+        - LISTEN
+        - LND_DIR
       volumes:
           - shared:/rpc
           - lnd:/lnd-data
@@ -82,6 +86,32 @@ services:
       container_name: lncli
       entrypoint: ["./start-lncli.sh"]
       stdin_open: true
+
+    rtl:
+      container_name: simnet_rtl
+      image: shahanafarooqui/rtl:0.3.0
+      # build:
+      #   context: ../docker/rtl/
+      ports:
+        - ${RTL_PORT?}:${RTL_PORT?}
+      environment:
+        - PORT=${RTL_PORT?}
+        - RTL_PASS
+        - LND_SERVER_URL
+        - MACAROON_PATH
+        - NODE_AUTH_TYPE
+        - LND_CONFIG_PATH
+        - RTL_CONFIG_PATH
+        - BITCOIND_CONFIG_PATH
+        - RTL_SSO=0
+        - RTL_COOKIE_PATH
+        - LOGOUT_REDIRECT_LINK
+        - CHANNEL_BACKUP_PATH
+      volumes:
+          - shared:/rpc
+          - lnd:/lnd-data
+      networks:
+        - boltbox
 
 networks:
   boltbox:

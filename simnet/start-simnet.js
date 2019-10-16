@@ -6,7 +6,8 @@ const assert = require('assert')
 const exec = promisify(require('child_process').exec)
 
 const { NodeConfig, colorLog, colorize } = require('../utils')
-const { startMonitors } = require('./start-monitors')
+const { startMonitors } = require('./startMonitors')
+const { startDashboards } = require('./startDashboards')
 
 const NETWORK = 'simnet'
 // env vars to use for all docker calls
@@ -66,6 +67,7 @@ async function generateCredentials(...nodes) {
     name: 'alice',
     rpc: 10001,
     p2p: 19735,
+    rest: 9090,
     network: env.NETWORK,
     verbose
   })
@@ -121,6 +123,7 @@ async function generateCredentials(...nodes) {
       rpc: 10002,
       neutrino: true,
       p2p: 19736,
+      rest: 9091,
       network: env.NETWORK,
       verbose
     })
@@ -133,6 +136,7 @@ async function generateCredentials(...nodes) {
       rpc: 10003,
       neutrino: true,
       p2p: 19737,
+      rest: 9092,
       network: env.NETWORK,
       verbose
     })
@@ -247,6 +251,11 @@ async function generateCredentials(...nodes) {
 
     await startMonitors(bob)
 
+    console.log(`\nStarting Ride The Lightning (RTL) Dashboard for ${alice.name}...`)
+
+    const rtlPass = 'foobar'
+    await startDashboards(rtlPass, alice)
+
     console.log('\nYour network is ready to go! Gathering network information...\n')
 
     blockchainInfo = await getBlockchainInfo()
@@ -292,6 +301,7 @@ async function generateCredentials(...nodes) {
       console.log('Channel Balance:', node.lnBalance)
       console.log(`Identity: ${node.identityPubkey}@${node.name}:${node.p2pPort}`)
       console.log('RPC Port:', node.rpcPort)
+      console.log('REST Port:', node.restPort)
       console.log(`Command Prefix:`, colorize(colorize(node.lncli, 'bgYellow'), 'black'))
 
       console.log('\n')
@@ -315,6 +325,11 @@ paste it into your terminal followed by the lncli command you'd like to run.",
     console.log('URL: http://localhost:3000')
     console.log('username: admin')
     console.log('pw: admin')
+    console.log('\n')
+
+    colorLog(colorize(`${alice.name.toUpperCase()} Dashboard`, 'bright'), 'cyan')
+    console.log('URL: http://localhost:5000')
+    console.log(`pw: ${rtlPass}`)
     console.log('\n')
   } catch (e) {
     if (e.stderr) console.error('Encountered error starting network:', e.stderr)
