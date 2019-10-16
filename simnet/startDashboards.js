@@ -5,7 +5,8 @@ const exec = promisify(require('child_process').exec)
 
 const NodeConfig = require('../utils/NodeConfig')
 /**
- * Start monitors for each node passed to the function
+ * Start up an RTL dashboard to interact with multiple nodes
+ * @param {String} rtlPass - password for connecting to RTL server
  * @param {NodeConfig[]} nodes - array of NodeConfig objects
  * for interacting with running nodes.
  * @returns void
