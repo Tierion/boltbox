@@ -89,9 +89,11 @@ services:
 
     rtl:
       container_name: simnet_rtl
-      image: shahanafarooqui/rtl:0.3.0
-      # build:
-      #   context: ../docker/rtl/
+      image: rtl-boltbox
+      build:
+        context: ../docker/rtl/
+        args:
+          RTL_VERSION: 0.5.4
       ports:
         - ${RTL_PORT?}:${RTL_PORT?}
       environment:
