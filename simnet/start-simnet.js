@@ -7,7 +7,7 @@ const exec = promisify(require('child_process').exec)
 
 const { NodeConfig, colorLog, colorize } = require('../utils')
 const { startMonitors } = require('./startMonitors')
-const { startDashboards } = require('./startDashboards')
+const { startRTL } = require('./startDashboards')
 
 const NETWORK = 'simnet'
 // env vars to use for all docker calls
@@ -254,7 +254,7 @@ async function generateCredentials(...nodes) {
     console.log(`\nStarting Ride The Lightning (RTL) Dashboard for ${alice.name}...`)
 
     const rtlPass = 'foobar'
-    await startDashboards(rtlPass, alice)
+    await startRTL(rtlPass, ...nodes)
 
     console.log('\nYour network is ready to go! Gathering network information...\n')
 
@@ -327,7 +327,7 @@ paste it into your terminal followed by the lncli command you'd like to run.",
     console.log('pw: admin')
     console.log('\n')
 
-    colorLog(colorize(`${alice.name.toUpperCase()} Dashboard`, 'bright'), 'cyan')
+    colorLog(colorize(`Ride The Lightning (RTL) Dashboard`, 'bright'), 'cyan')
     console.log('URL: http://localhost:5000')
     console.log(`pw: ${rtlPass}`)
     console.log('\n')
