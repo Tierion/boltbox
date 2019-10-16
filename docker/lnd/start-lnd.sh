@@ -106,6 +106,10 @@ if [[ -n $NEUTRINO ]]; then
   fi
 fi
 
+if [[ -n $LND_ALIAS ]]; then
+  PARAMS="$PARAMS --alias=$LND_ALIAS"
+fi
+
 if [[ -n $MONITORING ]]; then
   PARAMS="$PARAMS --prometheus.enable --prometheus.listen=0.0.0.0:$MONITORLISTEN"
 fi

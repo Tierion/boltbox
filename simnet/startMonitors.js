@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 const { promisify } = require('util')
-// const fs = require('fs')
 const path = require('path')
 const assert = require('assert')
-const exec = promisify(require('child_process').exec)
 
 const NodeConfig = require('../utils/NodeConfig')
+
+const exec = promisify(require('child_process').exec)
+
 /**
  * Start monitors for each node passed to the function
  * @param {NodeConfig[]} nodes - array of NodeConfig objects

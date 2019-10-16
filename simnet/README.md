@@ -123,14 +123,25 @@ local               simnet_shared
 These shared volumes are necessary for the RPC interface to be able to locate the necessary macaroons and tls certificates
 If you run the script a second time, it will check for existing volumes, including wallet balances, mined blocks, etc.
 
-## Monitoring
+## Dashboards
 
-#### LNDMON
+#### LNDMON - Time-series Monitoring
 
 The script will spin up an lndmon instance to use for monitoring one of your nodes. Unfortunately, lndmon does not
 currently support multi-node monitoring solutions out of the box, so only monitoring for `bob` is enabled. lndmon will use shared volumes and a shared network in order to connect it to the
 simnet containers. In order to accomplish this with the monitor's separate `docker-compose.yml`,
 we leverage docker compose's support for [extending configurations](https://docs.docker.com/compose/extends/).
+
+#### Ride the Lightning (RTL)
+
+Another dashboard available from the script is from [RTL](https://github.com/ShahanaFarooqui/RTL). This
+will give you an interface to not just see information about your node such as wallet and channel balances
+but will also give you the ability to spend and receive funds and run backups.
+
+Fortunately RTL does support a multi-node setup which the simnet script will launch for you automatically.
+To switch between the Alice, Bob, and Carol nodes, click the gear icon on the right of the dashboard
+and choose another node from the dropdown. You can even have different color schemes for the dashboard of
+each node!
 
 ## Troubleshooting
 
