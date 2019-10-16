@@ -68,7 +68,6 @@ services:
       volumes:
           - shared:/rpc
           - lnd:/lnd-data
-      entrypoint: ["./start-lnd.sh"]
       networks:
         - boltbox
 

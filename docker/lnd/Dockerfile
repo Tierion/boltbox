@@ -31,3 +31,5 @@ RUN mkdir -p /root/.lnd && chmod -R 777 /root/.lnd
 COPY start-lnd.sh .
 COPY start-lncli.sh .
 RUN chmod +x ./start-lnd.sh && chmod +x ./start-lncli.sh
+
+ENTRYPOINT ["./start-lnd.sh"]
