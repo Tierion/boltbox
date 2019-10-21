@@ -12,7 +12,7 @@ const exec = promisify(require('child_process').exec)
  * @returns void
  */
 
-async function startBoltwall(...nodes) {
+async function startBoltwall(verbose = false, ...nodes) {
   let count = 0
 
   let env = {
@@ -37,8 +37,16 @@ async function startBoltwall(...nodes) {
     -p ${port}:${port} \
     --name ${node.name}-boltwall \
     boltwall`
-
-    await exec(startCmd, { env })
+    try {
+      await exec(startCmd, { env })
+    } catch (e) {
+      if (e.message.match(/Cannot create container for service boltwall: Conflict/g)) {
+        if (verbose) console.warn(`Container for ${node.name}-boltwall already exists. Stopping...`)
+        await exec(`docker container stop ${node.name}-boltwall && docker container rm ${node.name}-boltwall`)
+        if (verbose) console.log('Container removed. Retrying...')
+        await exec(startCmd, { env })
+      }
+    }
     count++
   }
 }

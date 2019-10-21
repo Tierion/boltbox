@@ -4,5 +4,4 @@
  * with your own custom configs
  */
 
-// module.exports = require('boltwall').TIME_CAVEAT_CONFIGS
-module.exports = {}
+module.exports = require('boltwall').TIME_CAVEAT_CONFIGS

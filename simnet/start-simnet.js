@@ -262,7 +262,7 @@ async function generateCredentials(...nodes) {
     console.log('RTL Dashboards ready!')
 
     console.log(`\nStarting Boltwalls for all lnd nodes...`)
-    await startBoltwall(...nodes)
+    await startBoltwall(verbose, ...nodes)
 
     console.log('Boltwalls ready!')
 
@@ -313,7 +313,7 @@ async function generateCredentials(...nodes) {
       console.log(`Identity: ${node.identityPubkey}@${node.name}:${node.p2pPort}`)
       console.log('RPC Port:', node.rpcPort)
       console.log('REST Port:', node.restPort)
-      console.log(`Boltwall URI: http://localhost:${8000 + count}`)
+      console.log(`Boltwall URI: http://localhost:${8000 + count}/api/protected`)
       console.log(`Command Prefix:`, colorize(colorize(node.lncli, 'bgYellow'), 'black'))
 
       console.log('\n')
