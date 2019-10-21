@@ -60,4 +60,4 @@ if [[ ! -f /boltwall/configs/index.js && -e /boltwall/configs/sample-index.js ]]
 fi
 
 echo "Starting boltwall server"
-exec node /boltwall/index.js
+exec yarn start

@@ -119,18 +119,21 @@ services:
     build:
       context: ../docker/boltwall
     ports:
-      - 8000:8000
+      - ${BOLTWALL_PORT?}:${BOLTWALL_PORT?}
     environment:
-      - BOLTWALL_PORT=8000
+      - BOLTWALL_PORT
       - LND_TLS_CERT
       - LND_MACAROON
       - LND_SOCKET
       - CAVEAT_KEY=12345
       - SESSION_SECRET
       - BOLTWALL_TIME_CAVEAT
+      - BOLTWALL_PROTECTED_URL
+      - BOLTWALL_PATH
     networks:
       - boltbox
     volumes:
+      - ../docker/boltwall/index.js:/boltwall/index.js
       - ./configs:/boltwall/configs
 
 networks:

@@ -9,10 +9,14 @@
 const express = require('express')
 const cors = require('cors')
 const bodyParser = require('body-parser')
+const httpProxy = require('http-proxy')
+const apiProxy = httpProxy.createProxyServer()
 
 const { boltwall, TIME_CAVEAT_CONFIGS } = require('boltwall')
 
 const configs = require('./configs')
+
+const { BOLTWALL_PORT, BOLTWALL_PROTECTED_URL, BOLTWALL_TIME_CAVEAT, BOLTWALL_PATH = '/' } = process.env
 
 const app = express()
 
@@ -23,6 +27,10 @@ app.use(bodyParser.urlencoded({ extended: false }))
 // parse application/json
 app.use(bodyParser.json())
 
+app.use('*', (req, res, next) => {
+  console.log(`${req.method} ${req.baseUrl}`)
+  next()
+})
 /**
  * Boltwall accepts a config object as an argument.
  * With this configuration object, the server/api admin
@@ -35,24 +43,38 @@ app.use(bodyParser.json())
  */
 
 // if there is a env var indicating to use time caveat, then enable
-if (process.env.BOLTWALL_TIME_CAVEAT) app.use(boltwall(TIME_CAVEAT_CONFIGS))
+if (BOLTWALL_TIME_CAVEAT) app.use(BOLTWALL_PATH, boltwall(TIME_CAVEAT_CONFIGS))
 // if a custom configuration is found then use that
-else if (configs) app.use(boltwall(configs))
+else if (Object.keys(configs).length) app.use(BOLTWALL_PATH, boltwall(configs))
 // otherwise, use without configs
-else app.use(boltwall())
+else app.use(BOLTWALL_PATH, boltwall())
 
 /******
 Any middleware our route passed after this point will be protected and require
 payment
 ******/
 
-// TODO: pass request to process.env.BOLTWALL_PROTECTED_URL
+let protectedRoute
 
-app.get('/protected', (req, res) =>
-  res.json({
-    message: 'Protected route! This message will only be returned if an invoice has been paid'
-  })
-)
+if (BOLTWALL_PROTECTED_URL) {
+  protectedRoute = (req, res) => {
+    console.log('Request paid for and authenticated. Forwarding to protected route.')
+    console.log(`${req.method} ${req.path}`)
+    apiProxy.web(req, res, {
+      target: BOLTWALL_PROTECTED_URL,
+      secure: true,
+      xfwd: true, // adds x-forward headers
+      changeOrigin: true // changes the origin of the host header to the target URL. fixes a ssl related error
+    })
+  }
+} else {
+  protectedRoute = (req, res) =>
+    res.json({
+      message: 'Protected route! This message will only be returned if an invoice has been paid'
+    })
+}
 
-const port = process.env.BOLTWALL_PORT || 5000
+app.use(`${BOLTWALL_PATH}/`, protectedRoute)
+app.all('*', (req, res) => res.status(404).send('Resource not found'))
+const port = BOLTWALL_PORT || 5000
 app.listen(port, () => console.log(`listening on port ${port}!`))
