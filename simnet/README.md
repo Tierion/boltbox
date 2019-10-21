@@ -123,7 +123,7 @@ local               simnet_shared
 These shared volumes are necessary for the RPC interface to be able to locate the necessary macaroons and tls certificates
 If you run the script a second time, it will check for existing volumes, including wallet balances, mined blocks, etc.
 
-## Dashboards
+## Add-ons
 
 #### LNDMON - Time-series Monitoring
 
@@ -143,7 +143,41 @@ To switch between the Alice, Bob, and Carol nodes, click the gear icon on the ri
 and choose another node from the dropdown. You can even have different color schemes for the dashboard of
 each node!
 
-## Troubleshooting
+#### Boltwall
+
+A boltwall server is deployed for each lightning node. Boltwall lets you easily spin up an API Paywall
+where a lightning payment is required to access certain api endpoints. Each simnet node will have one
+accessible from the host machine's `localhost`. Information should be output after everything has spun
+up.
+
+Test it out by paying alice for current price data by following these steps (once your network is running):
+
+1. `GET http://localhost:8000/api/protected/node` to get connection information about alice's lightning node.
+
+2. `GET http://localhost:8000/api/protected/currentprice.json` will return a `402` error for payment required.
+
+3. `POST http://localhost:8000/api/protected/invoice` with the following JSON body to get an invoice that will
+   give you access to the protected route for 30 seconds:
+
+```json
+{
+  "amount": 30,
+  "appName": "boltwall test",
+  "title": "current prices"
+}
+```
+
+4. Make payment using the `payreq` string returned from the above request (you can use the RTL dashboard
+   to pay the invoice with bob or carol's node at localhost:5000 (the default for the simnet script)).
+
+5. `GET http://localhost:8000/api/protected/invoice?id=[INVOICE ID]` to check payment status of invoice.
+   Id is an optional query parameter if requesting from the same session as the `POST /invoice`
+   request was made as the id can be inferred from a session cookie that is returned in that response.
+
+6. `GET http://localhost:8000/api/protected/currentprice.json` will return a `200` status and a different message.
+   Keep trying the request, and after 30 seconds you will get an expiration notice and `402` error.
+
+## Troubleshooting Boltbox Simnet
 
 The best thing to try and do to troubleshoot any issues is make sure all associated containers
 have been torn down as well as all shared volumes. The way that the node containers know about each other
