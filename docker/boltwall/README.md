@@ -24,10 +24,12 @@ how to connect to the lightning node. Currently only base64 encoded values are s
 - `LND_SOCKET`
 - `LND_MACAROON`
 
-This one is not technically required as boltwall will work without, it just serves little purpose
-as there is nothing being protected by the paywall.
+This next one is not technically required as boltwall will work without. If none is specificed, however,
+then the protected route is just a dummy path that returns a json message.
 
 - `BOLTWALL_PROTECTED_URL` - URL to proxy the request to after a payment has been confirmed
+
+See the simnet directory for an example of using this URL to protect requests to a price feed API.
 
 #### Optional Environment Variables
 

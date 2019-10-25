@@ -150,7 +150,7 @@ where a lightning payment is required to access certain api endpoints. Each simn
 accessible from the host machine's `localhost`. Information should be output after everything has spun
 up.
 
-The test boltwall mimics an API that will provide a current bitcoin price feed if the current conditions are met:
+The test boltwall mimics an API that will provide a current BTC price feed if the current conditions are met:
 
 - An invoice worth at least 400 satoshis must be paid to the boltwall node
 - After the invoice is paid, you have to "guess" the node's middlename (hint: it's danger)
@@ -179,7 +179,7 @@ Test it out by paying alice for current price data by following these steps (onc
 5. `PUT http://localhost:8000/api/protected/invoice?id=[INVOICE ID]` to check payment status of invoice.
    Id is an optional query parameter if requesting from the same session as the `POST /invoice`
    request was made as the id can be inferred from a session cookie that is returned in that response. You
-   must also include the following in the request body to pass the "credentials" test
+   must also include the following in the request body to pass the "credentials" test for custom caveat config.
 
 ```json
 {
@@ -188,7 +188,7 @@ Test it out by paying alice for current price data by following these steps (onc
 ```
 
 6. `GET http://localhost:8000/api/protected/currentprice.json` will return a `200` status and a different message.
-   Keep trying the request, and after 30 seconds you will get an expiration notice and `402` error.
+   Keep trying the request, and after 30 seconds the request will no longer work.
 
 ## Troubleshooting Boltbox Simnet
 
