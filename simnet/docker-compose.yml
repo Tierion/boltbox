@@ -133,7 +133,6 @@ services:
     networks:
       - boltbox
     volumes:
-      - ../docker/boltwall/index.js:/boltwall/index.js
       - ./configs:/boltwall/configs
 
 networks:
