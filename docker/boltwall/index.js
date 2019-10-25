@@ -12,7 +12,7 @@ const bodyParser = require('body-parser')
 const httpProxy = require('http-proxy')
 const apiProxy = httpProxy.createProxyServer()
 
-const { boltwall, TIME_CAVEAT_CONFIGS } = require('boltwall')
+const { boltwall, TIME_CAVEAT_CONFIGS } = require('./node_modules/boltwall/dist/index.js')
 
 const configs = require('./configs')
 
