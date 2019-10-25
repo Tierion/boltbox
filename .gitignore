@@ -8,3 +8,4 @@ data
 **/write-file-atomic-*
 **/vendor
 credentials.json
+*-error.log

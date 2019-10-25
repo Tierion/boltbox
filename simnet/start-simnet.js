@@ -8,6 +8,7 @@ const exec = promisify(require('child_process').exec)
 const { NodeConfig, colorLog, colorize } = require('../utils')
 const { startMonitors } = require('./startMonitors')
 const { startRTL } = require('./startDashboards')
+const startBoltwall = require('./startBoltwall')
 
 const NETWORK = 'simnet'
 // env vars to use for all docker calls
@@ -251,10 +252,19 @@ async function generateCredentials(...nodes) {
 
     await startMonitors(bob)
 
-    console.log(`\nStarting Ride The Lightning (RTL) Dashboard for ${alice.name}...`)
+    console.log('LND Monitor ready!')
+
+    console.log(`\nStarting Ride The Lightning (RTL) Dashboard for all lnd nodes...`)
 
     const rtlPass = 'foobar'
     await startRTL(rtlPass, ...nodes)
+
+    console.log('RTL Dashboards ready!')
+
+    console.log(`\nStarting Boltwalls for all lnd nodes...`)
+    await startBoltwall(verbose, ...nodes)
+
+    console.log('Boltwalls ready!')
 
     console.log('\nYour network is ready to go! Gathering network information...\n')
 
@@ -295,6 +305,7 @@ async function generateCredentials(...nodes) {
     carol.balance = carolBalanceNew.confirmed_balance
     carol.lnBalance = carolLnBalance.balance
 
+    let count = 0
     for (let node of nodes) {
       colorLog(colorize(`**${node.name.toUpperCase()}**`, 'bright'), 'cyan')
       console.log('Wallet Balance:', node.balance)
@@ -302,9 +313,11 @@ async function generateCredentials(...nodes) {
       console.log(`Identity: ${node.identityPubkey}@${node.name}:${node.p2pPort}`)
       console.log('RPC Port:', node.rpcPort)
       console.log('REST Port:', node.restPort)
+      console.log(`Boltwall URI: http://localhost:${8000 + count}/api/protected`)
       console.log(`Command Prefix:`, colorize(colorize(node.lncli, 'bgYellow'), 'black'))
 
       console.log('\n')
+      count++
     }
 
     colorLog('********************************', 'magenta')

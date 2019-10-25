@@ -113,6 +113,28 @@ services:
     networks:
       - boltbox
 
+  boltwall:
+    container_name: simnet_boltwall
+    image: boltwall:boltbox
+    build:
+      context: ../docker/boltwall
+    ports:
+      - ${BOLTWALL_PORT?}:${BOLTWALL_PORT?}
+    environment:
+      - BOLTWALL_PORT
+      - LND_TLS_CERT
+      - LND_MACAROON
+      - LND_SOCKET
+      - CAVEAT_KEY=12345
+      - SESSION_SECRET
+      - BOLTWALL_TIME_CAVEAT
+      - BOLTWALL_PROTECTED_URL
+      - BOLTWALL_PATH
+    networks:
+      - boltbox
+    volumes:
+      - ./configs:/boltwall/configs
+
 networks:
   boltbox:
     name: boltbox-simnet
