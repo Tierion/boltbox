@@ -1,0 +1,28 @@
+version: '3.7'
+services:
+  lndmon:
+    volumes:
+      - lnd:/root/.lnd/
+    networks:
+      - boltbox-simnet
+
+  prometheus:
+    networks:
+      - boltbox-simnet
+
+  grafana:
+    networks:
+      - boltbox-simnet
+
+  post_start:
+    networks:
+      - boltbox-simnet
+
+networks:
+  boltbox-simnet:
+    external: true
+
+volumes:
+  lnd:
+    external: true
+    name: lnd-data-simnet

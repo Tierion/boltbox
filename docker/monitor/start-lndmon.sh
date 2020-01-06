@@ -39,23 +39,31 @@ set_default() {
 }
 
 # Set default variables if needed.
-RPCSERVER=$(set_default "$RPCSERVER" "lnd:10009")
-NETWORK=$(set_default "$NETWORK" "mainnet")
-LND_DIR=$(set_default "$LND_DIR" "/root/.lnd")
-MACAROON_PATH=$(set_default "$MACAROON_PATH" "$LND_DIR/data/chain/bitcoin/$NETWORK/admin.macaroon")
-TLS_CERT_PATH=$(set_default "$TLS_CERT_PATH" "$LND_DIR/tls.cert")
+PROMETHEUSLISTEN=$(set_default "$PROMETHEUSLISTEN" "9092")
 
-PARAMS=""
-echo $MACAROON_PATH
+# MONITORLISTEN is actually used when starting lnd instance to expose
+# the appropriate port for prometheus to listen to. Need to set env var
+# for the prometheus.yml to have access
+MONITORLISTEN=$(set_default "$MONITORLISTEN" "8989")
+
+LND_NETWORK=$(set_default "$NETWORK" "main")
+LND_HOSTNAME=$(set_default "$LND_HOSTNAME" "lnd")
+LND_RPC_PORT=$(set_default "$LND_RPC_PORT" "10009")
+LND_DIR=$(set_default "$LND_DIR" "/root/.lnd")
+MACAROON_DIR=$(set_default "$MACAROON_DIR" "$LND_DIR/data/chain/bitcoin/$LND_NETWORK")
+TLS_CERT_PATH=$(set_default "$TLS_CERT_PATH" "$LND_DIR/tls.cert")
+LND_HOST=$(set_default "$LND_HOST" "${LND_HOSTNAME}:${LND_RPC_PORT}")
+
 PARAMS=$(echo $PARAMS \
-    "--network=$NETWORK" \
-    "--rpcserver=$RPCSERVER" \
-    "--lnddir=$LND_DIR" \
-    "--macaroonpath=$MACAROON_PATH" \
-    "--tlscertpath=$TLS_CERT_PATH" \
+    "--prometheus.listenaddr=0.0.0.0:$PROMETHEUSLISTEN" \
+    "--lnd.network=$LND_NETWORK" \
+    "--lnd.host=$LND_HOST" \
+    "--lnd.macaroondir=$MACAROON_DIR" \
+    "--lnd.tlspath=$TLS_CERT_PATH"
 )
 
+# Add user parameters to command.
 PARAMS="$PARAMS $@"
-echo "Command: lncli $PARAMS"
 
-exec lncli $PARAMS
+echo "Command: lndmon $PARAMS"
+exec lndmon $PARAMS

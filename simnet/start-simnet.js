@@ -6,6 +6,9 @@ const assert = require('assert')
 const exec = promisify(require('child_process').exec)
 
 const { NodeConfig, colorLog, colorize } = require('../utils')
+const { startMonitors } = require('./startMonitors')
+const { startRTL } = require('./startDashboards')
+const startBoltwall = require('./startBoltwall')
 
 const NETWORK = 'simnet'
 // env vars to use for all docker calls
@@ -40,12 +43,15 @@ async function generateCredentials(...nodes) {
     assert(node instanceof NodeConfig, 'Expected a NodeConfig to generate credentials from')
 
     let cert = await getFileBase64(node, 'tls.cert')
-    let macaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/admin.macaroon`)
+    let adminMacaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/admin.macaroon`)
+    let readonlyMacaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/readonly.macaroon`)
+    let invoicesMacaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/invoices.macaroon`)
+    let invoiceMacaroon = await getFileBase64(node, `data/chain/bitcoin/${node.network}/invoice.macaroon`)
 
-    credentials[node.name] = { cert, macaroon }
+    credentials[node.name] = { cert, adminMacaroon, readonlyMacaroon, invoicesMacaroon, invoiceMacaroon }
   }
 
-  const credentialsFile = path.join(process.cwd(), 'credentials.env.json')
+  const credentialsFile = path.join(process.cwd(), 'credentials.json')
 
   fs.writeFileSync(credentialsFile, JSON.stringify(credentials, null, 2))
   colorLog(colorize(`Credentials written to file ${credentialsFile}`, 'bright'), 'cyan')
@@ -62,6 +68,7 @@ async function generateCredentials(...nodes) {
     name: 'alice',
     rpc: 10001,
     p2p: 19735,
+    rest: 9090,
     network: env.NETWORK,
     verbose
   })
@@ -117,6 +124,7 @@ async function generateCredentials(...nodes) {
       rpc: 10002,
       neutrino: true,
       p2p: 19736,
+      rest: 9091,
       network: env.NETWORK,
       verbose
     })
@@ -129,6 +137,7 @@ async function generateCredentials(...nodes) {
       rpc: 10003,
       neutrino: true,
       p2p: 19737,
+      rest: 9092,
       network: env.NETWORK,
       verbose
     })
@@ -239,6 +248,24 @@ async function generateCredentials(...nodes) {
 
     await generateCredentials(alice, bob, carol)
 
+    console.log(`\nStarting LND Monitor for ${bob.name}...`)
+
+    await startMonitors(bob)
+
+    console.log('LND Monitor ready!')
+
+    console.log(`\nStarting Ride The Lightning (RTL) Dashboard for all lnd nodes...`)
+
+    const rtlPass = 'foobar'
+    await startRTL(rtlPass, ...nodes)
+
+    console.log('RTL Dashboards ready!')
+
+    console.log(`\nStarting Boltwalls for all lnd nodes...`)
+    await startBoltwall(verbose, ...nodes)
+
+    console.log('Boltwalls ready!')
+
     console.log('\nYour network is ready to go! Gathering network information...\n')
 
     blockchainInfo = await getBlockchainInfo()
@@ -278,15 +305,19 @@ async function generateCredentials(...nodes) {
     carol.balance = carolBalanceNew.confirmed_balance
     carol.lnBalance = carolLnBalance.balance
 
+    let count = 0
     for (let node of nodes) {
       colorLog(colorize(`**${node.name.toUpperCase()}**`, 'bright'), 'cyan')
       console.log('Wallet Balance:', node.balance)
       console.log('Channel Balance:', node.lnBalance)
       console.log(`Identity: ${node.identityPubkey}@${node.name}:${node.p2pPort}`)
       console.log('RPC Port:', node.rpcPort)
+      console.log('REST Port:', node.restPort)
+      console.log(`Boltwall URI: http://localhost:${8000 + count}/api/protected`)
       console.log(`Command Prefix:`, colorize(colorize(node.lncli, 'bgYellow'), 'black'))
 
       console.log('\n')
+      count++
     }
 
     colorLog('********************************', 'magenta')
@@ -300,6 +331,19 @@ paste it into your terminal followed by the lncli command you'd like to run.",
     colorLog(colorize(`${carol.lncli} getinfo`, 'black'), 'bgYellow')
 
     colorLog('********************************', 'magenta')
+
+    console.log('\n')
+    colorLog(colorize('**DASHBOARDS**', 'bright'), 'magenta')
+    colorLog(colorize(`${bob.name.toUpperCase()} MONITOR`, 'bright'), 'cyan')
+    console.log('URL: http://localhost:3000')
+    console.log('username: admin')
+    console.log('pw: admin')
+    console.log('\n')
+
+    colorLog(colorize(`Ride The Lightning (RTL) Dashboard`, 'bright'), 'cyan')
+    console.log('URL: http://localhost:5000')
+    console.log(`pw: ${rtlPass}`)
+    console.log('\n')
   } catch (e) {
     if (e.stderr) console.error('Encountered error starting network:', e.stderr)
     else console.error('Encountered error:', e)

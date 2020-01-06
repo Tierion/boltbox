@@ -45,8 +45,8 @@ PUBLICIP=$(set_default "$PUBLICIP" "127.0.0.1")
 NETWORK=$(set_default "$NETWORK" "testnet")
 CHAIN=$(set_default "$CHAIN" "bitcoin")
 TLSPATH=$(set_default "$TLSPATH" "/root/.lnd/tls.cert")
-LNDDIR=$(set_default "$LNDDIR" "/root/.lnd")
-MACAROONDIR="$LNDDIR/data/chain/$CHAIN/$NETWORK"
+LND_DIR=$(set_default "$LND_DIR" "/root/.lnd")
+MACAROONDIR="$LND_DIR/data/chain/$CHAIN/$NETWORK"
 
 # Loop
 LOOP_RPC_PORT=$(set_default "$LOOP_RPC_PORT" "11010")

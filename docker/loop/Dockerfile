@@ -17,6 +17,7 @@ RUN apk add --no-cache --update alpine-sdk \
 
 # Start a new, final image to reduce size.
 FROM alpine as final
+LABEL maintainer="Boltbox team <buck@tierion.com>"
 
 # Expose loop ports (server, rpc).
 EXPOSE 8081 11010

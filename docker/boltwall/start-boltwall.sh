@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# A start script to get and set the env vars and run the server
+
 # exit from script if error was raised.
 set -e
 
@@ -38,24 +40,24 @@ set_default() {
    return "$VARIABLE"
 }
 
-# Set default variables if needed.
-RPCSERVER=$(set_default "$RPCSERVER" "lnd:10009")
-NETWORK=$(set_default "$NETWORK" "mainnet")
-LND_DIR=$(set_default "$LND_DIR" "/root/.lnd")
-MACAROON_PATH=$(set_default "$MACAROON_PATH" "$LND_DIR/data/chain/bitcoin/$NETWORK/admin.macaroon")
-TLS_CERT_PATH=$(set_default "$TLS_CERT_PATH" "$LND_DIR/tls.cert")
+BOLTWALL_PORT=$(set_default "$BOLTWALL_PORT" "5000")
+BOLTWALL_TIME_CAVEAT=$(set_default "$BOLTWALL_TIME_CAVEAT" false)
 
-PARAMS=""
-echo $MACAROON_PATH
-PARAMS=$(echo $PARAMS \
-    "--network=$NETWORK" \
-    "--rpcserver=$RPCSERVER" \
-    "--lnddir=$LND_DIR" \
-    "--macaroonpath=$MACAROON_PATH" \
-    "--tlscertpath=$TLS_CERT_PATH" \
-)
+if [ -z "$LND_TLS_CERT" ]; then
+  error "You must specify a base64 encoded tls cert (LND_TLS_CERT) for connecting with an lnd node"
+fi
 
-PARAMS="$PARAMS $@"
-echo "Command: lncli $PARAMS"
+if [ -z "$LND_SOCKET" ]; then
+  error "You must specify an LND_SOCKET (host:port) to connect to"
+fi
 
-exec lncli $PARAMS
+if [ -z "$LND_MACAROON" ]; then
+  error "You must specify a base64 encoded LND_MACAROON (admin macaroon) to connect to an lnd node"
+fi
+
+if [[ ! -f /boltwall/configs/index.js && -e /boltwall/configs/sample-index.js ]]; then
+  mv /boltwall/configs/sample-index.js /boltwall/configs/index.js
+fi
+
+echo "Starting boltwall server"
+exec yarn start

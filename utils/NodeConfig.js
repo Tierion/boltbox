@@ -11,7 +11,7 @@ const exec = promisify(require('child_process').exec)
  * @params {Number} p2p - p2p listening port
  */
 class NodeConfig {
-  constructor({ name, rpc, neutrino, p2p, network = 'mainnet', lnddir, backend, verbose }) {
+  constructor({ name, rpc, neutrino, p2p, rest, network = 'mainnet', lnddir, backend, verbose }) {
     assert(typeof rpc === 'number', 'NodeConfig requires a custom rpc port to create a node')
     assert(typeof p2p === 'number', 'NodeConfig requires a custom p2p listening port to create a node')
     assert(typeof name === 'string', 'NodeConfig requires a string to set the name of the node to')
@@ -19,9 +19,11 @@ class NodeConfig {
     this.name = name
     this.rpcPort = rpc
     this.p2pPort = p2p
+    if (rest) assert(typeof rest === 'number', 'NodeConfig requires a custom rpc port to create a node')
+    this.restPort = rest || 8080
     this.lnddir = lnddir || `/lnd-data/${name}`
     this.network = network
-    this.lncli = `docker-compose run --rm -e LNDDIR=${this.lnddir} -e RPCSERVER="${name}:${rpc}" -e NETWORK=${network} lncli`
+    this.lncli = `docker-compose run --rm -e LND_DIR=${this.lnddir} -e RPCSERVER="${name}:${rpc}" -e NETWORK=${network} lncli`
     this.env = {
       NETWORK: network,
       COMPOSE_INTERACTIVE_NO_CLI: true,
@@ -53,11 +55,14 @@ class NodeConfig {
 
   async startNode() {
     let startCmd = `docker-compose run -d \
-    -e LNDDIR='${this.lnddir}' \
+    -e LND_DIR='${this.lnddir}' \
     -e RPCLISTEN=${this.rpcPort} \
+    -e RESTLISTEN=${this.restPort} \
     -e NOSEEDBACKUP='true'\
-    -e TLSEXTRADOMAIN='${this.name}'
-    -e LISTEN='${this.p2pPort}'`
+    -e TLSEXTRADOMAIN='${this.name}' \
+    -e MONITORING='true'\
+    -e LISTEN='${this.p2pPort}'\
+    -e LND_ALIAS='${this.name}'`
 
     if (this.neutrino) {
       startCmd = `${startCmd} -e NEUTRINO=${this.backend} -e BACKEND=neutrino`
@@ -70,6 +75,7 @@ class NodeConfig {
 
     startCmd = startCmd.replace(/\s\s+/g, ' ')
 
+    if (this.verbose) console.log(`Starting ${this.name} node: ${startCmd}`)
     try {
       await exec(startCmd, { env: this.env })
     } catch (e) {
