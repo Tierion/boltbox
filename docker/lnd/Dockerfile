@@ -1,6 +1,6 @@
 FROM golang:1.13-alpine as builder
 
-ARG RELEASE_TAG=v0.8.2-beta
+ARG RELEASE_TAG=tags/v0.8.2-beta
 
 # Force Go to use the cgo based DNS resolver. This is required to ensure DNS
 # queries required to connect to linked containers succeed.
@@ -14,8 +14,8 @@ RUN apk add --no-cache --update alpine-sdk \
     libc-dev \
     gcc
 
-RUN git clone https://github.com/lightningnetwork/lnd /go/src/github.com/lightningnetwork/lnd
-RUN cd /go/src/github.com/lightningnetwork/lnd && git checkout tags/$RELEASE_TAG
+RUN git clone https://github.com/tierion/lnd /go/src/github.com/lightningnetwork/lnd
+RUN cd /go/src/github.com/lightningnetwork/lnd && git checkout $RELEASE_TAG
 RUN cd /go/src/github.com/lightningnetwork/lnd && make
 RUN cd /go/src/github.com/lightningnetwork/lnd && \
 make install tags="dev autopilotrpc chainrpc invoicesrpc routerrpc signrpc signerrpc walletrpc watchtowerrpc monitoring"
