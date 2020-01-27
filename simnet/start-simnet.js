@@ -6,9 +6,10 @@ const assert = require('assert')
 const exec = promisify(require('child_process').exec)
 
 const { NodeConfig, colorLog, colorize } = require('../utils')
-const { startMonitors } = require('./startMonitors')
+// const { startMonitors } = require('./startMonitors')
 const { startRTL } = require('./startDashboards')
 const startBoltwall = require('./startBoltwall')
+const startAccounting = require('./startAccounting')
 
 const NETWORK = 'simnet'
 // env vars to use for all docker calls
@@ -248,11 +249,12 @@ async function generateCredentials(...nodes) {
 
     await generateCredentials(alice, bob, carol)
 
-    console.log(`\nStarting LND Monitor for ${bob.name}...`)
+    // TODO: Figure out why lnd monitor isn't working
+    // console.log(`\nStarting LND Monitor for ${bob.name}...`)
 
-    await startMonitors(bob)
+    // await startMonitors(bob)
 
-    console.log('LND Monitor ready!')
+    // console.log('LND Monitor ready!')
 
     console.log(`\nStarting Ride The Lightning (RTL) Dashboard for all lnd nodes...`)
 
@@ -263,6 +265,11 @@ async function generateCredentials(...nodes) {
 
     console.log(`\nStarting Boltwalls for all lnd nodes...`)
     await startBoltwall(verbose, ...nodes)
+
+    console.log('Boltwalls ready!')
+
+    console.log(`\nStarting Boltwalls for all lnd nodes...`)
+    await startAccounting(verbose, ...nodes)
 
     console.log('Boltwalls ready!')
 
@@ -314,6 +321,7 @@ async function generateCredentials(...nodes) {
       console.log('RPC Port:', node.rpcPort)
       console.log('REST Port:', node.restPort)
       console.log(`Boltwall URI: http://localhost:${8000 + count}/api/protected`)
+      console.log(`Accounting URI: http://localhost:${9000 + count}/accounting`)
       console.log(`Command Prefix:`, colorize(colorize(node.lncli, 'bgYellow'), 'black'))
 
       console.log('\n')

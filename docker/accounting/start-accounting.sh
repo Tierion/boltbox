@@ -42,7 +42,7 @@ set_default() {
 
 BOLTWALL_PORT=$(set_default "$ACCOUNTING_PORT" "9000")
 
-if [ -z "$LND_TLS_CERT" ]; then
+if [[ -z $LND_TLS_CERT && -z $LND_DIR ]]; then
   error "You must specify a base64 encoded tls cert (LND_TLS_CERT) for connecting with an lnd node"
 fi
 
@@ -50,7 +50,7 @@ if [ -z "$LND_SOCKET" ]; then
   error "You must specify an LND_SOCKET (host:port) to connect to"
 fi
 
-if [ -z "$LND_MACAROON" ]; then
+if [[ -z $LND_MACAROON && -z $LND_DIR ]]; then
   error "You must specify a base64 encoded LND_MACAROON (admin macaroon) to connect to an lnd node"
 fi
 
