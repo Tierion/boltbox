@@ -86,6 +86,24 @@ services:
     entrypoint: ['./start-lncli.sh']
     stdin_open: true
 
+  accounting:
+    image: ln-accounting
+    build:
+      context: ../docker/accounting
+      dockerfile: Dockerfile
+    environment:
+      - LND_DIR
+      - LND_MACAROON
+      - LND_TLS_CERT
+      - LND_SOCKET
+      - LND-DIR
+      - ACCOUNTING_PORT=${ACCOUNTING_PORT:-9000}
+    volumes:
+      - lnd:/lnd-data
+      - ../docker/accounting/index.js:/accounting/index.js
+    networks:
+      - boltbox
+
   rtl:
     container_name: simnet_rtl
     image: rtl-boltbox

@@ -9,3 +9,4 @@ data
 **/vendor
 credentials.json
 *-error.log
+.env
