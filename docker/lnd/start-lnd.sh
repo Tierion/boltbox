@@ -35,7 +35,7 @@ set_default() {
         fi
     fi
 
-   return "$VARIABLE"
+    return "$VARIABLE"
 }
 
 # Set default variables if needed.
@@ -53,14 +53,6 @@ RPCLISTEN=$(set_default "$RPCLISTEN" "10009")
 MONITORLISTEN=$(set_default "$MONITORLISTEN" "8989")
 CHAN_CONFS=$(set_default "$CHAN_CONFS" 3)
 
-if [[ -n $BACKEND && "$BACKEND" == "neutrino" ]]; then
-  NEUTRINO=$(set_default "$NEUTRINO" "faucet.lightning.community:18333")
-fi 
-
-if [[ "$CHAIN" == "litecoin" ]]; then
-    BACKEND="ltcd"
-fi
-
 PARAMS=$(echo $PARAMS \
     "--lnddir=$LND_DIR" \
     "--debuglevel=$DEBUG" \
@@ -76,6 +68,22 @@ PARAMS=$(echo $PARAMS \
     "--$CHAIN.defaultchanconfs=$CHAN_CONFS" \
 )
 
+if [[ -n $BACKEND && "$BACKEND" == "neutrino" ]]; then
+    if [[ -n $NEUTRINO ]]; then
+        PARAMS="$PARAMS --neutrino.connect=$NEUTRINO"
+    fi
+    if [[ $NETWORK == "testnet" || $NETWORK == "mainnet" ]]; then
+        PARAMS="${PARAMS} --neutrino.connect=btcd-${NETWORK}.lightning.computer"
+        PARAMS="${PARAMS} --neutrino.connect=${NETWORK}1-btcd.zaphq.io"
+        PARAMS="${PARAMS} --neutrino.connect=${NETWORK}2-btcd.zaphq.io"
+    fi
+fi
+
+
+if [[ "$CHAIN" == "litecoin" ]]; then
+    BACKEND="ltcd"
+fi
+
 if [[ $BACKEND == "btcd" ]]; then
     PARAMS=$(echo $PARAMS \
         "--btcd.rpchost=blockchain" \
@@ -86,32 +94,23 @@ if [[ $BACKEND == "btcd" ]]; then
 fi
 
 if [[ -n $TLSEXTRADOMAIN ]]; then
-  PARAMS="$PARAMS --tlsextradomain=$TLSEXTRADOMAIN"
+    PARAMS="$PARAMS --tlsextradomain=$TLSEXTRADOMAIN"
 fi
 
 if [[ -n $PUBLICIP ]]; then
-  PARAMS="$PARAMS --tlsextraip=$PUBLICIP"
+    PARAMS="$PARAMS --tlsextraip=$PUBLICIP"
 fi
 
 if [[ -n $NOSEEDBACKUP ]]; then
-  PARAMS="$PARAMS --noseedbackup"
-fi
-
-if [[ -n $NEUTRINO ]]; then
-  PARAMS="$PARAMS --neutrino.connect=$NEUTRINO"
-  if [[ $NETWORK == "testnet" || $NETWORK == "mainnet" ]]; then
-    PARAMS="${PARAMS} --neutrino.connect=btcd-${NETWORK}.lightning.computer"
-    PARAMS="${PARAMS} --neutrino.connect=${NETWORK}1-btcd.zaphq.io"
-    PARAMS="${PARAMS} --neutrino.connect=${NETWORK}2-btcd.zaphq.io"
-  fi
+    PARAMS="$PARAMS --noseedbackup"
 fi
 
 if [[ -n $LND_ALIAS ]]; then
-  PARAMS="$PARAMS --alias=$LND_ALIAS"
+    PARAMS="$PARAMS --alias=$LND_ALIAS"
 fi
 
 if [[ -n $MONITORING ]]; then
-  PARAMS="$PARAMS --prometheus.enable --prometheus.listen=0.0.0.0:$MONITORLISTEN"
+    PARAMS="$PARAMS --prometheus.enable --prometheus.listen=0.0.0.0:$MONITORLISTEN"
 fi
 
 # Add user parameters to command.
