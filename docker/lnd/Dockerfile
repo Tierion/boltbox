@@ -1,6 +1,6 @@
 FROM golang:1.13-alpine as builder
 
-ARG RELEASE_TAG=tags/v0.8.2-beta
+ARG RELEASE_TAG=latest
 
 # Force Go to use the cgo based DNS resolver. This is required to ensure DNS
 # queries required to connect to linked containers succeed.
