@@ -41,6 +41,7 @@ set_default() {
 # Set default variables if needed.
 PUBLICIP=$(set_default "$PUBLICIP" "127.0.0.1")
 LISTEN=$(set_default "$LISTEN" "9735")
+RPCHOST=$(set_default "$RPCHOST" "localhost:8332")
 RPCUSER=$(set_default "$RPCUSER" "devuser")
 RPCPASS=$(set_default "$RPCPASS" "devpass")
 DEBUG=$(set_default "$DEBUG" "debug")
@@ -52,6 +53,8 @@ RESTLISTEN=$(set_default "$RESTLISTEN" "8080")
 RPCLISTEN=$(set_default "$RPCLISTEN" "10009")
 MONITORLISTEN=$(set_default "$MONITORLISTEN" "8989")
 CHAN_CONFS=$(set_default "$CHAN_CONFS" 3)
+ZMQPUBRAWBLOCK=$(set_default "$ZMQPUBRAWBLOCK" "tcp://localhost:28332")
+ZMQPUBRAWTX=$(set_default "$ZMQPUBRAWTX" "tcp://localhost:28333")
 
 PARAMS=$(echo $PARAMS \
     "--lnddir=$LND_DIR" \
@@ -82,6 +85,16 @@ fi
 
 if [[ "$CHAIN" == "litecoin" ]]; then
     BACKEND="ltcd"
+fi
+
+if [[ $BACKEND == "bitcoind" ]]; then
+    PARAMS=$(echo $PARAMS \
+        "--bitcoind.rpchost=$RPCHOST" \
+        "--bitcoind.rpcuser=$RPCUSER" \
+        "--bitcoind.rpcpass=$RPCPASS" \
+        "--bitcoind.zmqpubrawblock=$ZMQPUBRAWBLOCK" \
+        "--bitcoind.zmqpubrawtx=$ZMQPUBRAWTX"
+    )
 fi
 
 if [[ $BACKEND == "btcd" ]]; then
