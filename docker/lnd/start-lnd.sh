@@ -98,7 +98,7 @@ fi
 
 if [[ $BACKEND == "bitcoind" ]]; then
     PARAMS=$(echo $PARAMS \
-        "--bitcoind.rpchost=$RPCHOST" \
+        "--bitcoind.rpchost=$BACKEND_RPC_HOST" \
         "--bitcoind.rpcuser=$RPCUSER" \
         "--bitcoind.rpcpass=$RPCPASS" \
         "--bitcoind.zmqpubrawblock=$BITCOIND_ZMQPUBRAWBLOCK" \
@@ -108,7 +108,7 @@ fi
 
 if [[ $BACKEND == "btcd" ]]; then
     PARAMS=$(echo $PARAMS \
-        "--btcd.rpchost=$RPCHOST" \
+        "--btcd.rpchost=$BACKEND_RPC_HOST" \
         "--btcd.rpccert=/rpc/rpc.cert" \
         "--btcd.rpcuser=$RPCUSER" \
         "--btcd.rpcpass=$RPCPASS"
