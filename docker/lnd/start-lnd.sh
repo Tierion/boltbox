@@ -41,7 +41,6 @@ set_default() {
 # Set default variables if needed.
 PUBLICIP=$(set_default "$PUBLICIP" "127.0.0.1")
 LISTEN=$(set_default "$LISTEN" "9735")
-RPCHOST=$(set_default "$RPCHOST" "localhost:8332")
 RPCUSER=$(set_default "$RPCUSER" "devuser")
 RPCPASS=$(set_default "$RPCPASS" "devpass")
 DEBUG=$(set_default "$DEBUG" "debug")
@@ -53,8 +52,18 @@ RESTLISTEN=$(set_default "$RESTLISTEN" "8080")
 RPCLISTEN=$(set_default "$RPCLISTEN" "10009")
 MONITORLISTEN=$(set_default "$MONITORLISTEN" "8989")
 CHAN_CONFS=$(set_default "$CHAN_CONFS" 3)
-ZMQPUBRAWBLOCK=$(set_default "$ZMQPUBRAWBLOCK" "tcp://localhost:28332")
-ZMQPUBRAWTX=$(set_default "$ZMQPUBRAWTX" "tcp://localhost:28333")
+
+# For btcd and bitcoind
+RPCHOST=$(set_default "$RPCHOST" "blockchain")
+BACKEND_RPC_PORT=$(set_default "$BACKEND_RPC_PORT" "8332")
+BACKEND_RPC_HOST=$(set_default "$BACKEND_RPC_HOST" "$RPCHOST:$BACKEND_RPC_PORT")
+
+# For bitcoind
+BITCOIND_ZMQPUBRAWBLOCK_PORT=$(set_default "$BITCOIND_ZMQPUBRAWBLOCK_PORT" "28332")
+BITCOIND_ZMQPUBRAWTX_PORT=$(set_default "$BITCOIND_ZMQPUBRAWTX_PORT" "28333")
+BITCOIND_ZMQPUBRAWBLOCK=$(set_default "$BITCOIND_ZMQPUBRAWBLOCK" "tcp://$RPCHOST:$BITCOIND_ZMQPUBRAWBLOCK_PORT")
+BITCOIND_ZMQPUBRAWTX=$(set_default "$BITCOIND_ZMQPUBRAWTX" "tcp://$RPCHOST:$BITCOIND_ZMQPUBRAWTX")
+
 
 PARAMS=$(echo $PARAMS \
     "--lnddir=$LND_DIR" \
@@ -92,14 +101,14 @@ if [[ $BACKEND == "bitcoind" ]]; then
         "--bitcoind.rpchost=$RPCHOST" \
         "--bitcoind.rpcuser=$RPCUSER" \
         "--bitcoind.rpcpass=$RPCPASS" \
-        "--bitcoind.zmqpubrawblock=$ZMQPUBRAWBLOCK" \
-        "--bitcoind.zmqpubrawtx=$ZMQPUBRAWTX"
+        "--bitcoind.zmqpubrawblock=$BITCOIND_ZMQPUBRAWBLOCK" \
+        "--bitcoind.zmqpubrawtx=$BITCOIND_ZMQPUBRAWTX"
     )
 fi
 
 if [[ $BACKEND == "btcd" ]]; then
     PARAMS=$(echo $PARAMS \
-        "--btcd.rpchost=blockchain" \
+        "--btcd.rpchost=$RPCHOST" \
         "--btcd.rpccert=/rpc/rpc.cert" \
         "--btcd.rpcuser=$RPCUSER" \
         "--btcd.rpcpass=$RPCPASS"
