@@ -53,6 +53,18 @@ RPCLISTEN=$(set_default "$RPCLISTEN" "10009")
 MONITORLISTEN=$(set_default "$MONITORLISTEN" "8989")
 CHAN_CONFS=$(set_default "$CHAN_CONFS" 3)
 
+# For btcd and bitcoind
+RPCHOST=$(set_default "$RPCHOST" "blockchain")
+BACKEND_RPC_PORT=$(set_default "$BACKEND_RPC_PORT" "8332")
+BACKEND_RPC_HOST=$(set_default "$BACKEND_RPC_HOST" "$RPCHOST:$BACKEND_RPC_PORT")
+
+# For bitcoind
+BITCOIND_ZMQPUBRAWBLOCK_PORT=$(set_default "$BITCOIND_ZMQPUBRAWBLOCK_PORT" "28332")
+BITCOIND_ZMQPUBRAWTX_PORT=$(set_default "$BITCOIND_ZMQPUBRAWTX_PORT" "28333")
+BITCOIND_ZMQPUBRAWBLOCK=$(set_default "$BITCOIND_ZMQPUBRAWBLOCK" "tcp://$RPCHOST:$BITCOIND_ZMQPUBRAWBLOCK_PORT")
+BITCOIND_ZMQPUBRAWTX=$(set_default "$BITCOIND_ZMQPUBRAWTX" "tcp://$RPCHOST:$BITCOIND_ZMQPUBRAWTX")
+
+
 PARAMS=$(echo $PARAMS \
     "--lnddir=$LND_DIR" \
     "--debuglevel=$DEBUG" \
@@ -84,9 +96,19 @@ if [[ "$CHAIN" == "litecoin" ]]; then
     BACKEND="ltcd"
 fi
 
+if [[ $BACKEND == "bitcoind" ]]; then
+    PARAMS=$(echo $PARAMS \
+        "--bitcoind.rpchost=$BACKEND_RPC_HOST" \
+        "--bitcoind.rpcuser=$RPCUSER" \
+        "--bitcoind.rpcpass=$RPCPASS" \
+        "--bitcoind.zmqpubrawblock=$BITCOIND_ZMQPUBRAWBLOCK" \
+        "--bitcoind.zmqpubrawtx=$BITCOIND_ZMQPUBRAWTX"
+    )
+fi
+
 if [[ $BACKEND == "btcd" ]]; then
     PARAMS=$(echo $PARAMS \
-        "--btcd.rpchost=blockchain" \
+        "--btcd.rpchost=$BACKEND_RPC_HOST" \
         "--btcd.rpccert=/rpc/rpc.cert" \
         "--btcd.rpcuser=$RPCUSER" \
         "--btcd.rpcpass=$RPCPASS"
