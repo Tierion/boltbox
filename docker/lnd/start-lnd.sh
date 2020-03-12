@@ -78,6 +78,7 @@ PARAMS=$(echo $PARAMS \
     "--restlisten=0.0.0.0:$RESTLISTEN" \
     "--rpclisten=0.0.0.0:$RPCLISTEN" \
     "--$CHAIN.defaultchanconfs=$CHAN_CONFS" \
+    "--routing.assumechanvalid" \
 )
 
 if [[ -n $BACKEND && "$BACKEND" == "neutrino" ]]; then
