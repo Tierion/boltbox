@@ -89,6 +89,9 @@ if [[ -n $BACKEND && "$BACKEND" == "neutrino" ]]; then
         PARAMS="${PARAMS} --neutrino.connect=${NETWORK}1-btcd.zaphq.io"
         PARAMS="${PARAMS} --neutrino.connect=${NETWORK}2-btcd.zaphq.io"
     fi
+    if [[ $NETWORK == "testnet" ]]; then
+        PARAMS="${PARAMS} --neutrino.connect=faucet.lightning.community:18333"
+    fi
 fi
 
 
