@@ -5,6 +5,7 @@ const dotenv = require('dotenv')
 const fs = require('fs')
 const path = require('path')
 const isBase64 = require('is-base64')
+const request = require('request')
 
 const app = express()
 
@@ -44,6 +45,7 @@ app.get('/accounting', async (req, res) => {
     })
     const options = { lnd }
 
+    options.request = request
     options.currency = 'BTC'
     options.fiat = 'USD'
 
