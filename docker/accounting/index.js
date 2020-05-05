@@ -6,6 +6,7 @@ const fs = require('fs')
 const path = require('path')
 const isBase64 = require('is-base64')
 const request = require('request')
+const zip = require('express-zip');
 
 const app = express()
 
@@ -58,9 +59,30 @@ app.get('/accounting', async (req, res) => {
     }
     if (query.before) options.before = query.before
     if (query.after) options.after = query.after
+    if (!(query.before && query.after)) {
+      var a = new Date();
+      a.setDate(1);
+      a.setMonth(a.getMonth()-1);
+      var b = new Date();
+      b.setDate(0);
+      b.setMonth(b.getMonth());
+      options.after = a.toISOString()
+      options.before = b.toISOString()
+    }
     const report = await lnAccounting.getAccountingReport(options)
+    fs.writeFileSync('csv/chain_fees.csv', report.chain_fees_csv);
+    fs.writeFileSync('csv/chain_sends.csv', report.chain_sends_csv);
+    fs.writeFileSync('csv/forwards.csv', report.forwards_csv);
+    fs.writeFileSync('csv/invoices.csv', report.invoices_csv);
+    fs.writeFileSync('csv/payments.csv',  report.payments_csv);
     res.status(200)
-    return res.json(report)
+    res.zip([
+      { path: 'csv/chain_fees.csv', name: 'csv/chain_fees.csv' },
+      { path: 'csv/chain_sends.csv', name: 'csv/chain_sends.csv' },
+      { path: 'csv/forwards.csv', name: 'csv/forwards.csv' },
+      { path: 'csv/invoices.csv', name: 'csv/invoices.csv' },
+      { path: 'csv/payments.csv', name: 'csv/payments.csv' }
+    ]);
   } catch (e) {
     console.error('There was a problem getting accounting information:', e)
     res.status(500).send(e.message || e)

@@ -7,6 +7,8 @@ RUN apk add --no-cache bash git
 # Copy this directory into the image
 WORKDIR /accounting
 
+RUN mkdir csv
+RUN chmod -R 777 csv
 COPY package*.json ./
 COPY yarn.lock ./
 
