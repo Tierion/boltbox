@@ -6,6 +6,7 @@ const path = require('path')
 const isBase64 = require('is-base64')
 const request = require('request')
 const AWS = require('aws-sdk');
+const CSV = require('csv-string')
 
 dotenv.config()
 const { ACCOUNTING_PORT, LND_SOCKET, LND_MACAROON, LND_TLS_CERT, LND_DIR, NETWORK = 'mainnet' } = process.env
@@ -53,39 +54,60 @@ async function runIt() {
 
         const report = await lnAccounting.getAccountingReport(options)
         let fees = process.argv[3] + '-chain_fees.csv'
-        let sends = process.argv[3] + '-chain_sends.csv'
-        let forwards = process.argv[3] + '-forwards.csv'
         let invoices = process.argv[3] + '-invoices.csv'
         let payments = process.argv[3] + '-payments.csv'
+
+        let feeArr = []
+        let invoicesArr = []
+        let paymentsArr = []
+
+        CSV.forEach(report.chain_fees_csv, ',', function(row, index) {
+            if (row.length == 0 || index == 0 || !row[0]) {
+                return
+            }
+            row[4] = process.argv[3]
+            row[5] = "mainnet"
+            row[7] = "OP_RETURN"
+            if (row[8] && row[8].length > 0) {
+                row[8] = row[8].split(":")[0]
+            }
+            feeArr.push(row)
+        });
+        CSV.forEach(report.invoices_csv, ',', function(row, index) {
+            if (row.length == 0 || index == 0 || !row[0]) {
+                return
+            }
+            row[4] = "gateway"
+            row[5] = "mainnet"
+            row[7] = process.argv[3]
+            invoicesArr.push(row)
+        });
+        CSV.forEach(report.payments_csv, ',', function(row, index) {
+            if (row.length == 0 || index == 0 || !row[0]) {
+                return
+            }
+            row[4] = process.argv[3]
+            row[5] = "mainnet"
+            paymentsArr.push(row)
+        });
+
         let month = a.toLocaleString('default', { month: 'long' })
         let params = {
             Bucket: process.argv[2],
             Key: month + '/' + fees,
-            Body: report.chain_fees_csv
-        };
-        await new AWS.S3().putObject(params).promise();
-        params = {
-            Bucket: process.argv[2],
-            Key:  month + '/' + sends,
-            Body: report.chain_sends_csv
-        };
-        await new AWS.S3().putObject(params).promise();
-        params = {
-            Bucket: process.argv[2],
-            Key: month + '/' + forwards,
-            Body: report.forwards_csv
+            Body: CSV.stringify(feeArr)
         };
         await new AWS.S3().putObject(params).promise();
         params = {
             Bucket: process.argv[2],
             Key: month + '/' + invoices,
-            Body: report.invoices_csv
+            Body: CSV.stringify(invoicesArr)
         };
         await new AWS.S3().putObject(params).promise();
         params = {
             Bucket: process.argv[2],
             Key: month + '/' + payments,
-            Body: report.payments_csv
+            Body: CSV.stringify(paymentsArr)
         };
         await new AWS.S3().putObject(params).promise();
         console.log("reports written to " + month)
