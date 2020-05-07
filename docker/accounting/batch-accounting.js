@@ -53,18 +53,23 @@ async function runIt() {
         options.rate_provider = 'coincap'
 
         const report = await lnAccounting.getAccountingReport(options)
-        let fees = process.argv[3] + '-chain_fees.csv'
-        let invoices = process.argv[3] + '-invoices.csv'
-        let payments = process.argv[3] + '-payments.csv'
+        let fees = process.argv[3] + '-chain_fees-' + a.getMonth() + 1 + '_' + a.getFullYear() + '.csv'
+        let invoices = process.argv[3] + '-invoices-' + a.getMonth() + 1 + '_' + a.getFullYear() + '.csv'
+        let payments = process.argv[3] + '-payments-' + a.getMonth() + 1 + '_' + a.getFullYear() + '.csv'
 
         let feeArr = []
         let invoicesArr = []
         let paymentsArr = []
 
         CSV.forEach(report.chain_fees_csv, ',', function(row, index) {
-            if (row.length == 0 || index == 0 || !row[0]) {
+            if (row.length == 0 || !row[0]) {
                 return
             }
+            if (index == 0) {
+                feeArr.push(row)
+                return
+            }
+            row[0] = (row[0]/parseFloat(100000000)).toFixed(8)
             row[4] = process.argv[3]
             row[5] = "mainnet"
             row[7] = "OP_RETURN"
@@ -74,18 +79,28 @@ async function runIt() {
             feeArr.push(row)
         });
         CSV.forEach(report.invoices_csv, ',', function(row, index) {
-            if (row.length == 0 || index == 0 || !row[0]) {
+            if (row.length == 0 || !row[0]) {
                 return
             }
+            if (index == 0) {
+                invoicesArr.push(row)
+                return
+            }
+            row[0] = (row[0]/parseFloat(100000000)).toFixed(8)
             row[4] = "gateway"
             row[5] = "mainnet"
             row[7] = process.argv[3]
             invoicesArr.push(row)
         });
         CSV.forEach(report.payments_csv, ',', function(row, index) {
-            if (row.length == 0 || index == 0 || !row[0]) {
+            if (row.length == 0 || !row[0]) {
                 return
             }
+            if (index == 0) {
+                paymentsArr.push(row)
+                return
+            }
+            row[0] = (row[0]/parseFloat(100000000)).toFixed(8)
             row[4] = process.argv[3]
             row[5] = "mainnet"
             paymentsArr.push(row)
