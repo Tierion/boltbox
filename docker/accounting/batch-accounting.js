@@ -5,7 +5,8 @@ const fs = require('fs')
 const path = require('path')
 const isBase64 = require('is-base64')
 const request = require('request')
-const AWS = require('aws-sdk');
+var fetch = require('isomorphic-fetch');
+var Dropbox = require('dropbox').Dropbox;
 const CSV = require('csv-string')
 
 dotenv.config()
@@ -37,6 +38,8 @@ async function runIt() {
         })
         const options = { lnd }
 
+        var dbx = new Dropbox({ accessToken: process.argv[3], fetch: fetch });
+
         options.request = request
         options.currency = 'BTC'
         options.fiat = 'USD'
@@ -53,9 +56,9 @@ async function runIt() {
         options.rate_provider = 'coincap'
 
         const report = await lnAccounting.getAccountingReport(options)
-        let fees = process.argv[3] + '-chain_fees-' + a.getMonth() + 1 + '_' + a.getFullYear() + '.csv'
-        let invoices = process.argv[3] + '-invoices-' + a.getMonth() + 1 + '_' + a.getFullYear() + '.csv'
-        let payments = process.argv[3] + '-payments-' + a.getMonth() + 1 + '_' + a.getFullYear() + '.csv'
+        let fees = process.argv[2] + '-chain_fees-' + (a.getMonth() + 1) + '_' + a.getFullYear() + '.csv'
+        let invoices = process.argv[2] + '-invoices-' + (a.getMonth() + 1) + '_' + a.getFullYear() + '.csv'
+        let payments = process.argv[2] + '-payments-' + (a.getMonth() + 1) + '_' + a.getFullYear() + '.csv'
 
         let feeArr = []
         let invoicesArr = []
@@ -70,7 +73,7 @@ async function runIt() {
                 return
             }
             row[0] = (row[0]/parseFloat(100000000)).toFixed(8)
-            row[4] = process.argv[3]
+            row[4] = process.argv[2]
             row[5] = "mainnet"
             row[7] = "OP_RETURN"
             if (row[8] && row[8].length > 0) {
@@ -89,7 +92,7 @@ async function runIt() {
             row[0] = (row[0]/parseFloat(100000000)).toFixed(8)
             row[4] = "gateway"
             row[5] = "mainnet"
-            row[7] = process.argv[3]
+            row[7] = process.argv[2]
             invoicesArr.push(row)
         });
         CSV.forEach(report.payments_csv, ',', function(row, index) {
@@ -101,30 +104,41 @@ async function runIt() {
                 return
             }
             row[0] = (row[0]/parseFloat(100000000)).toFixed(8)
-            row[4] = process.argv[3]
+            row[4] = process.argv[2]
             row[5] = "mainnet"
             paymentsArr.push(row)
         });
-
         let month = a.toLocaleString('default', { month: 'long' })
-        let params = {
-            Bucket: process.argv[2],
-            Key: month + '/' + fees,
-            Body: CSV.stringify(feeArr)
-        };
-        await new AWS.S3().putObject(params).promise();
-        params = {
-            Bucket: process.argv[2],
-            Key: month + '/' + invoices,
-            Body: CSV.stringify(invoicesArr)
-        };
-        await new AWS.S3().putObject(params).promise();
-        params = {
-            Bucket: process.argv[2],
-            Key: month + '/' + payments,
-            Body: CSV.stringify(paymentsArr)
-        };
-        await new AWS.S3().putObject(params).promise();
+        dbx.filesUpload({
+                path: `/tierion-accounting/${month}/${fees}`,
+                contents: new Buffer(CSV.stringify(feeArr))
+            })
+            .then(response => {
+                console.log(response);
+            })
+            .catch(err => {
+                console.log(err);
+            });
+        dbx.filesUpload({
+                path: `/tierion-accounting/${month}/${invoices}`,
+                contents: new Buffer(CSV.stringify(invoicesArr))
+            })
+            .then(response => {
+                console.log(response);
+            })
+            .catch(err => {
+                console.log(err);
+            });
+        dbx.filesUpload({
+                path: `/tierion-accounting/${month}/${payments}`,
+                contents: new Buffer(CSV.stringify(paymentsArr))
+            })
+            .then(response => {
+                console.log(response);
+            })
+            .catch(err => {
+                console.log(err);
+            });
         console.log("reports written to " + month)
     } catch (e) {
         console.error('There was a problem getting accounting information:', e)
