@@ -63,7 +63,7 @@ async function runIt() {
         let feeArr = []
         let invoicesArr = []
         let paymentsArr = []
-
+        let type
         CSV.forEach(report.chain_fees_csv, ',', function(row, index) {
             if (row.length == 0 || !row[0]) {
                 return
@@ -93,6 +93,7 @@ async function runIt() {
             row[4] = "gateway"
             row[5] = "mainnet"
             row[7] = process.argv[2]
+            type = "Cores"
             invoicesArr.push(row)
         });
         CSV.forEach(report.payments_csv, ',', function(row, index) {
@@ -106,11 +107,12 @@ async function runIt() {
             row[0] = (row[0]/parseFloat(100000000)).toFixed(8)
             row[4] = process.argv[2]
             row[5] = "mainnet"
+            type = "Gateways"
             paymentsArr.push(row)
         });
         let month = a.toLocaleString('default', { month: 'long' })
         dbx.filesUpload({
-                path: `/tierion-accounting/${month}/${fees}`,
+                path: `/Chainpoint Transactions/${a.getFullYear()}/${month}/${type}/${fees}`,
                 contents: new Buffer(CSV.stringify(feeArr))
             })
             .then(response => {
@@ -120,7 +122,7 @@ async function runIt() {
                 console.log(err);
             });
         dbx.filesUpload({
-                path: `/tierion-accounting/${month}/${invoices}`,
+                path: `/Chainpoint Transactions/${a.getFullYear()}/${month}/${type}/${invoices}`,
                 contents: new Buffer(CSV.stringify(invoicesArr))
             })
             .then(response => {
@@ -130,7 +132,7 @@ async function runIt() {
                 console.log(err);
             });
         dbx.filesUpload({
-                path: `/tierion-accounting/${month}/${payments}`,
+                path: `/Chainpoint Transactions/${a.getFullYear()}/${month}/${type}/${payments}`,
                 contents: new Buffer(CSV.stringify(paymentsArr))
             })
             .then(response => {
