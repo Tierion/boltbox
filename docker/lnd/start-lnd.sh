@@ -62,7 +62,7 @@ BACKEND_RPC_HOST=$(set_default "$BACKEND_RPC_HOST" "$RPCHOST:$BACKEND_RPC_PORT")
 BITCOIND_ZMQPUBRAWBLOCK_PORT=$(set_default "$BITCOIND_ZMQPUBRAWBLOCK_PORT" "28332")
 BITCOIND_ZMQPUBRAWTX_PORT=$(set_default "$BITCOIND_ZMQPUBRAWTX_PORT" "28333")
 BITCOIND_ZMQPUBRAWBLOCK=$(set_default "$BITCOIND_ZMQPUBRAWBLOCK" "tcp://$RPCHOST:$BITCOIND_ZMQPUBRAWBLOCK_PORT")
-BITCOIND_ZMQPUBRAWTX=$(set_default "$BITCOIND_ZMQPUBRAWTX" "tcp://$RPCHOST:$BITCOIND_ZMQPUBRAWTX")
+BITCOIND_ZMQPUBRAWTX=$(set_default "$BITCOIND_ZMQPUBRAWTX" "tcp://$RPCHOST:$BITCOIND_ZMQPUBRAWTX_PORT")
 
 
 PARAMS=$(echo $PARAMS \
@@ -78,11 +78,15 @@ PARAMS=$(echo $PARAMS \
     "--restlisten=0.0.0.0:$RESTLISTEN" \
     "--rpclisten=0.0.0.0:$RPCLISTEN" \
     "--$CHAIN.defaultchanconfs=$CHAN_CONFS" \
+    "--routing.assumechanvalid" \
 )
 
 if [[ -n $BACKEND && "$BACKEND" == "neutrino" ]]; then
     if [[ -n $NEUTRINO ]]; then
-        PARAMS="$PARAMS --neutrino.connect=$NEUTRINO"
+      for i in ${NEUTRINO//,/ }
+      do
+        PARAMS="$PARAMS --neutrino.connect=$i"
+      done
     fi
     if [[ $NETWORK == "testnet" || $NETWORK == "mainnet" ]]; then
         PARAMS="${PARAMS} --neutrino.connect=btcd-${NETWORK}.lightning.computer"
