@@ -85,16 +85,16 @@ if [[ -n $BACKEND && "$BACKEND" == "neutrino" ]]; then
     if [[ -n $NEUTRINO ]]; then
       for i in ${NEUTRINO//,/ }
       do
-        PARAMS="$PARAMS --neutrino.connect=$i"
+        PARAMS="$PARAMS --neutrino.addpeer=$i"
       done
     fi
     if [[ $NETWORK == "testnet" || $NETWORK == "mainnet" ]]; then
-        PARAMS="${PARAMS} --neutrino.connect=btcd-${NETWORK}.lightning.computer"
-        PARAMS="${PARAMS} --neutrino.connect=${NETWORK}1-btcd.zaphq.io"
-        PARAMS="${PARAMS} --neutrino.connect=${NETWORK}2-btcd.zaphq.io"
+        PARAMS="${PARAMS} --neutrino.addpeer=btcd-${NETWORK}.lightning.computer"
+        PARAMS="${PARAMS} --neutrino.addpeer=${NETWORK}1-btcd.zaphq.io"
+        PARAMS="${PARAMS} --neutrino.addpeer=${NETWORK}2-btcd.zaphq.io"
     fi
     if [[ $NETWORK == "testnet" ]]; then
-        PARAMS="${PARAMS} --neutrino.connect=faucet.lightning.community:18333"
+        PARAMS="${PARAMS} --neutrino.addpeer=faucet.lightning.community:18333"
     fi
 fi
 
