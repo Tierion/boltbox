@@ -96,6 +96,9 @@ if [[ -n $BACKEND && "$BACKEND" == "neutrino" ]]; then
     if [[ $NETWORK == "testnet" ]]; then
         PARAMS="${PARAMS} --neutrino.addpeer=faucet.lightning.community:18333"
     fi
+    if [[ $NETWORK == "mainnet" ]]; then
+        PARAMS="${PARAMS} --feeurl=https://nodes.lightning.computer/fees/v1/btc-fee-estimates.json"
+    fi
 fi
 
 
