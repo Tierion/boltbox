@@ -1,6 +1,6 @@
-FROM golang:1.13-alpine as builder
+FROM golang:1.16-alpine as builder
 
-ARG RELEASE_TAG=mempool
+ARG RELEASE_TAG=v0.14.1-beta-tierion
 
 # Force Go to use the cgo based DNS resolver. This is required to ensure DNS
 # queries required to connect to linked containers succeed.
